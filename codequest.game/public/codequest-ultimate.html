@@ -1,0 +1,3826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeQuest Ultimate - A Jornada do Mestre Programador</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        #gameCanvas {
+            border: 4px solid transparent;
+            background: linear-gradient(#0a0a1a, #0a0a1a) padding-box,
+                        linear-gradient(45deg, #ffd700, #ff6b00, #ff0066, #00d4ff, #ffd700) border-box;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3), 
+                        0 0 60px rgba(255, 107, 0, 0.2),
+                        inset 0 0 100px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes borderGlow {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.3), 0 0 60px rgba(255, 107, 0, 0.2); }
+            50% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.5), 0 0 100px rgba(255, 107, 0, 0.4); }
+        }
+        
+        #ui {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            color: white;
+            font-size: 8px;
+            text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255,215,0,0.5);
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .ui-panel {
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(20,20,40,0.9) 100%);
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            padding: 8px 12px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .ui-panel-right {
+            text-align: right;
+        }
+        
+        #healthBar {
+            width: 120px;
+            height: 14px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #333 100%);
+            border: 2px solid #ff4444;
+            border-radius: 7px;
+            overflow: hidden;
+            margin-top: 4px;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+        
+        #healthFill {
+            height: 100%;
+            background: linear-gradient(180deg, #ff6666 0%, #ff0000 50%, #cc0000 100%);
+            transition: width 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.3);
+        }
+        
+        #manaBar {
+            width: 120px;
+            height: 10px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #333 100%);
+            border: 2px solid #00aaff;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 4px;
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.3);
+        }
+        
+        #manaFill {
+            height: 100%;
+            background: linear-gradient(180deg, #66ccff 0%, #0088ff 50%, #0066cc 100%);
+            transition: width 0.3s ease;
+        }
+        
+        #xpBar {
+            width: 120px;
+            height: 8px;
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        
+        #xpFill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #88ff00);
+            transition: width 0.3s ease;
+        }
+        
+        #skillBar {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 15;
+        }
+        
+        .skill-slot {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(30,30,60,0.9) 100%);
+            border: 2px solid #666;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .skill-slot.ready {
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .skill-slot.active {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            transform: scale(1.1);
+        }
+        
+        .skill-slot .cooldown {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            height: 0%;
+            transition: height 0.1s linear;
+        }
+        
+        .skill-key {
+            position: absolute;
+            bottom: -12px;
+            font-size: 6px;
+            color: #aaa;
+        }
+        
+        #dialogBox {
+            position: absolute;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, rgba(0, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%);
+            border: 3px solid #00d4ff;
+            border-radius: 12px;
+            padding: 15px 25px;
+            color: #fff;
+            font-size: 9px;
+            max-width: 85%;
+            display: none;
+            z-index: 20;
+            line-height: 2;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5), inset 0 0 50px rgba(0, 212, 255, 0.1);
+        }
+        
+        #dialogBox.show {
+            display: block;
+            animation: dialogPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes dialogPop {
+            from { transform: translateX(-50%) scale(0.5) translateY(20px); opacity: 0; }
+            to { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
+        }
+        
+        #codeChallenge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #0a1628 0%, #050d14 100%);
+            border: 4px solid;
+            border-image: linear-gradient(45deg, #00d4ff, #00ff88, #00d4ff) 1;
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+            width: 90%;
+            max-width: 550px;
+            display: none;
+            z-index: 30;
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.4), 0 0 100px rgba(0, 255, 136, 0.2);
+        }
+        
+        #codeChallenge.show {
+            display: block;
+            animation: challengeSlide 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes challengeSlide {
+            from { transform: translate(-50%, -50%) scale(0.8) rotateX(20deg); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1) rotateX(0); opacity: 1; }
+        }
+        
+        #codeChallenge h2 {
+            color: #00ff88;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 20px #00ff88;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+        }
+        
+        #codeChallenge p {
+            font-size: 9px;
+            line-height: 2;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        #codeChallenge pre {
+            background: linear-gradient(180deg, #0d0d0d 0%, #1a1a1a 100%);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 11px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00ff88;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+        }
+        
+        #codeChallenge input {
+            width: 100%;
+            padding: 14px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #151515 100%);
+            border: 2px solid #00d4ff;
+            color: #00ff00;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        #codeChallenge input:focus {
+            outline: none;
+            box-shadow: 0 0 20px #00d4ff;
+            border-color: #00ff88;
+        }
+        
+        #codeChallenge button {
+            width: 100%;
+            padding: 14px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            background: linear-gradient(180deg, #00ff88 0%, #00aa55 100%);
+            border: none;
+            color: #000;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        #codeChallenge button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px #00ff88;
+        }
+        
+        #challengeHint {
+            margin-top: 15px;
+            font-size: 8px;
+            color: #ff6b6b;
+            text-align: center;
+        }
+        
+        #startScreen, #gameOverScreen, #victoryScreen, #shopScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(0,0,0,0.98) 0%, rgba(10,10,30,0.98) 100%);
+            z-index: 50;
+            color: white;
+            text-align: center;
+        }
+        
+        #startScreen h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ffd700, #ff6b00, #ff0066, #ffd700);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite, titleFloat 2s ease-in-out infinite;
+            margin-bottom: 5px;
+            text-shadow: none;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        #startScreen h2 {
+            font-size: 10px;
+            color: #00d4ff;
+            margin-bottom: 25px;
+            text-shadow: 0 0 20px #00d4ff;
+        }
+        
+        .startBtn {
+            padding: 16px 45px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            background: linear-gradient(180deg, #ffd700 0%, #ff8c00 100%);
+            border: none;
+            color: #1a1a2e;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+        }
+        
+        .startBtn:hover {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+        }
+        
+        .startBtn.secondary {
+            background: linear-gradient(180deg, #00d4ff 0%, #0077b6 100%);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+        }
+        
+        #controls {
+            margin-top: 25px;
+            font-size: 7px;
+            color: #888;
+            line-height: 2.2;
+            background: rgba(0,0,0,0.5);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        #controls span {
+            color: #ffd700;
+        }
+        
+        #levelIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 30px #ffd700, 0 0 60px #ff6b00;
+            display: none;
+            z-index: 25;
+            text-align: center;
+        }
+        
+        #levelIndicator .difficulty {
+            font-size: 10px;
+            color: #ff6b6b;
+            margin-top: 10px;
+            display: block;
+        }
+        
+        @keyframes levelPulse {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; filter: blur(10px); }
+            50% { transform: translate(-50%, -50%) scale(1.1); filter: blur(0); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        #musicToggle {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(30,30,60,0.9) 100%);
+            border: 2px solid #ffd700;
+            color: #ffd700;
+            padding: 8px 14px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 7px;
+            cursor: pointer;
+            border-radius: 6px;
+            z-index: 40;
+            transition: all 0.3s;
+            pointer-events: auto;
+        }
+        
+        #musicToggle:hover {
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            transform: scale(1.05);
+        }
+        
+        #achievementPopup {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.95) 0%, rgba(255, 140, 0, 0.95) 100%);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            padding: 12px 18px;
+            color: #1a1a2e;
+            font-size: 8px;
+            z-index: 35;
+            display: none;
+            animation: achievementSlide 0.5s ease-out;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+        }
+        
+        @keyframes achievementSlide {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        #achievementPopup h4 {
+            font-size: 10px;
+            margin-bottom: 5px;
+        }
+        
+        #bossHealthContainer {
+            position: absolute;
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            display: none;
+            z-index: 15;
+        }
+        
+        #bossName {
+            text-align: center;
+            color: #ff4444;
+            font-size: 10px;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px #ff4444;
+        }
+        
+        #bossHealthBar {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #333 100%);
+            border: 3px solid #ff4444;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+        
+        #bossHealthFill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff4444, #ff6666, #ff4444, #ff0000);
+            background-size: 200% 100%;
+            animation: bossHealthPulse 2s ease infinite;
+            transition: width 0.3s ease;
+        }
+        
+        @keyframes bossHealthPulse {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        /* Shop styles */
+        #shopScreen {
+            display: none;
+        }
+        
+        #shopScreen.show {
+            display: flex;
+        }
+        
+        .shop-container {
+            background: linear-gradient(180deg, rgba(20, 20, 40, 0.98) 0%, rgba(10, 10, 30, 0.98) 100%);
+            border: 3px solid #ffd700;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .shop-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ffd700;
+        }
+        
+        .shop-gold {
+            text-align: center;
+            color: #ffd700;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .shop-item {
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(30,30,60,0.8) 100%);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .shop-item:hover {
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+            transform: translateY(-3px);
+        }
+        
+        .shop-item.owned {
+            border-color: #00ff00;
+            opacity: 0.7;
+        }
+        
+        .shop-item-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .shop-item-name {
+            font-size: 8px;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        
+        .shop-item-desc {
+            font-size: 6px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        
+        .shop-item-price {
+            font-size: 9px;
+            color: #ffd700;
+        }
+        
+        .close-shop {
+            display: block;
+            margin: 0 auto;
+            padding: 12px 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            background: linear-gradient(180deg, #666 0%, #444 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .close-shop:hover {
+            background: linear-gradient(180deg, #888 0%, #666 100%);
+        }
+        
+        /* Combo display */
+        #comboDisplay {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700;
+            display: none;
+            z-index: 15;
+            animation: comboPulse 0.3s ease;
+        }
+        
+        @keyframes comboPulse {
+            0% { transform: translateY(-50%) scale(1.5); }
+            100% { transform: translateY(-50%) scale(1); }
+        }
+        
+        /* Damage numbers */
+        .damage-number {
+            position: absolute;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            color: #ff4444;
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            z-index: 100;
+            animation: damageFloat 1s ease-out forwards;
+        }
+        
+        .damage-number.crit {
+            font-size: 20px;
+            color: #ffd700;
+        }
+        
+        .damage-number.heal {
+            color: #00ff00;
+        }
+        
+        @keyframes damageFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(0.5); }
+        }
+        
+        /* Mini map */
+        #minimap {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            width: 80px;
+            height: 50px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #444;
+            border-radius: 5px;
+            z-index: 12;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="900" height="550"></canvas>
+        
+        <div id="ui">
+            <div class="ui-panel">
+                <div>FASE <span id="levelNum">1</span> - <span id="levelName">Tutorial</span></div>
+                <div style="margin-top: 4px;">LVL <span id="playerLevel">1</span> | XP: <span id="playerXP">0</span></div>
+                <div id="xpBar"><div id="xpFill"></div></div>
+                <div style="margin-top: 6px;">VIDA:</div>
+                <div id="healthBar"><div id="healthFill"></div></div>
+                <div style="margin-top: 4px;">MANA:</div>
+                <div id="manaBar"><div id="manaFill"></div></div>
+            </div>
+            <div class="ui-panel ui-panel-right">
+                <div>GOLD: <span id="gold" style="color: #ffd700;">0</span></div>
+                <div>SCORE: <span id="score">0</span></div>
+                <div>COMBO: <span id="combo" style="color: #ff6b6b;">x0</span></div>
+                <div>VIDAS: <span id="lives" style="color: #ff4444;">3</span></div>
+                <div id="powerupUI" style="margin-top: 4px; color: #00ff88;"></div>
+            </div>
+        </div>
+        
+        <div id="skillBar">
+            <div class="skill-slot ready" id="skill1">
+                <div class="cooldown" id="skill1CD"></div>
+                <span>1</span>
+                <span class="skill-key">[1]</span>
+            </div>
+            <div class="skill-slot" id="skill2">
+                <div class="cooldown" id="skill2CD"></div>
+                <span>2</span>
+                <span class="skill-key">[2]</span>
+            </div>
+            <div class="skill-slot" id="skill3">
+                <div class="cooldown" id="skill3CD"></div>
+                <span>3</span>
+                <span class="skill-key">[3]</span>
+            </div>
+            <div class="skill-slot" id="skill4">
+                <div class="cooldown" id="skill4CD"></div>
+                <span>4</span>
+                <span class="skill-key">[4]</span>
+            </div>
+        </div>
+        
+        <div id="dialogBox"></div>
+        
+        <div id="codeChallenge">
+            <h2>DESAFIO DE CODIGO</h2>
+            <p id="challengeText"></p>
+            <pre id="challengeCode"></pre>
+            <input type="text" id="codeAnswer" placeholder="Digite sua resposta..." autocomplete="off">
+            <button onclick="checkAnswer()">VERIFICAR</button>
+            <div id="challengeHint"></div>
+        </div>
+        
+        <div id="levelIndicator">
+            <div id="levelTitle"></div>
+            <span class="difficulty" id="levelDifficulty"></span>
+        </div>
+        
+        <div id="bossHealthContainer">
+            <div id="bossName"></div>
+            <div id="bossHealthBar"><div id="bossHealthFill"></div></div>
+        </div>
+        
+        <div id="comboDisplay">x<span id="comboCount">0</span></div>
+        
+        <div id="achievementPopup">
+            <h4>CONQUISTA!</h4>
+            <div id="achievementText"></div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>CODEQUEST ULTIMATE</h1>
+            <h2>A Jornada do Mestre Programador</h2>
+            
+            <div style="margin: 15px 0; font-size: 8px; color: #aaa; line-height: 1.8;">
+                20 Fases Epicas | 5 Mundos | 5 Bosses Lendarios<br>
+                Sistema de Skills | Loja de Upgrades | Conquistas
+            </div>
+            
+            <button class="startBtn" onclick="startGame()">NOVA JORNADA</button>
+            <button class="startBtn secondary" onclick="openShop()">LOJA</button>
+            
+            <div id="controls">
+                <span>A/D</span> ou <span>SETAS</span> : Mover | 
+                <span>ESPACO/W</span> : Pular<br>
+                <span>X</span> : Atacar | <span>SHIFT</span> : Dash | <span>C</span> : Pulo Duplo<br>
+                <span>1-4</span> : Skills | <span>E</span> : Interagir | <span>ENTER</span> : Continuar
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" style="display: none;">
+            <h1 style="color: #ff4444; font-size: 28px; margin-bottom: 20px;">GAME OVER</h1>
+            <div style="font-size: 12px; margin-bottom: 10px;">Pontuacao: <span id="finalScore">0</span></div>
+            <div style="font-size: 10px; margin-bottom: 10px;">Fase Alcancada: <span id="finalLevel">1</span></div>
+            <div style="font-size: 10px; margin-bottom: 20px;">Gold Coletado: <span id="finalGold">0</span></div>
+            <button class="startBtn" onclick="restartGame()">TENTAR NOVAMENTE</button>
+        </div>
+        
+        <div id="victoryScreen" style="display: none;">
+            <h1 style="color: #ffd700; font-size: 22px; margin-bottom: 15px;">MESTRE DO CODIGO!</h1>
+            <div style="font-size: 10px; color: #00ff88; margin-bottom: 20px;">
+                Voce completou todas as 20 fases e derrotou todos os Bosses!
+            </div>
+            <div style="font-size: 14px; margin-bottom: 10px;">Pontuacao Final: <span id="victoryScore" style="color: #ffd700;">0</span></div>
+            <div style="font-size: 10px; margin-bottom: 20px;">
+                Nivel: <span id="victoryLevel">1</span> | Gold: <span id="victoryGold">0</span>
+            </div>
+            <button class="startBtn" onclick="restartGame()">JOGAR NOVAMENTE</button>
+        </div>
+        
+        <div id="shopScreen">
+            <div class="shop-container">
+                <div class="shop-title">LOJA DE UPGRADES</div>
+                <div class="shop-gold">Gold: <span id="shopGold">0</span></div>
+                <div class="shop-items" id="shopItems"></div>
+                <button class="close-shop" onclick="closeShop()">FECHAR</button>
+            </div>
+        </div>
+        
+        <button id="musicToggle" onclick="toggleMusic()">MUSICA ON</button>
+    </div>
+
+    <script>
+        // ==================== CONFIGURACOES DO JOGO ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        
+        // Estado do jogo
+        let gameState = 'start';
+        let currentLevel = 0;
+        let score = 0;
+        let gold = 0;
+        let combo = 0;
+        let comboTimer = 0;
+        let maxCombo = 0;
+        let lives = 3;
+        let musicPlaying = false;
+        let audioContext = null;
+        let screenShake = 0;
+        let screenShakeIntensity = 0;
+        let gameTime = 0;
+        
+        // Sistema de XP e Level
+        let playerXP = 0;
+        let playerLevel = 1;
+        let xpToNextLevel = 100;
+        
+        // Sistema de conquistas
+        const achievements = {
+            firstKill: { name: 'Primeiro Sangue', desc: 'Derrote seu primeiro inimigo', unlocked: false },
+            combo10: { name: 'Combo Master', desc: 'Alcance um combo de 10', unlocked: false },
+            noHit: { name: 'Intocavel', desc: 'Complete uma fase sem levar dano', unlocked: false },
+            bossSlayer: { name: 'Matador de Boss', desc: 'Derrote seu primeiro boss', unlocked: false },
+            speedrunner: { name: 'Speedrunner', desc: 'Complete uma fase em menos de 30s', unlocked: false },
+            collector: { name: 'Colecionador', desc: 'Colete 100 moedas', unlocked: false },
+            maxLevel: { name: 'Nivel Maximo', desc: 'Alcance o nivel 20', unlocked: false }
+        };
+        
+        let totalCoinsCollected = 0;
+        let levelStartTime = 0;
+        let tookDamageThisLevel = false;
+        
+        // Sistema de loja
+        const shopItems = [
+            { id: 'extraLife', name: 'Vida Extra', desc: '+1 vida permanente', price: 500, icon: '❤️', owned: false, effect: () => { lives++; } },
+            { id: 'maxHealth', name: 'Mais Vida', desc: '+25 vida maxima', price: 300, icon: '💖', owned: false, effect: () => { player.maxHealth += 25; player.health = player.maxHealth; } },
+            { id: 'maxMana', name: 'Mais Mana', desc: '+25 mana maxima', price: 300, icon: '💙', owned: false, effect: () => { player.maxMana += 25; player.mana = player.maxMana; } },
+            { id: 'attackUp', name: 'Forca+', desc: '+10 dano de ataque', price: 400, icon: '⚔️', owned: false, effect: () => { player.attackDamage += 10; } },
+            { id: 'speedUp', name: 'Velocidade+', desc: '+1 velocidade', price: 350, icon: '👟', owned: false, effect: () => { player.baseSpeed += 1; } },
+            { id: 'jumpUp', name: 'Pulo+', desc: 'Pulo mais alto', price: 350, icon: '🦘', owned: false, effect: () => { player.jumpForce -= 2; } },
+            { id: 'dashUp', name: 'Dash+', desc: 'Dash mais forte', price: 400, icon: '💨', owned: false, effect: () => { player.dashPower += 5; } },
+            { id: 'manaRegen', name: 'Regen Mana', desc: 'Regenera mana mais rapido', price: 450, icon: '✨', owned: false, effect: () => { player.manaRegen += 0.02; } }
+        ];
+        
+        // ==================== DEFINICAO DAS 20 FASES ====================
+        const levels = [
+            // MUNDO 1: FLORESTA MISTICA (Fases 1-4)
+            {
+                name: "Clareia da Floresta",
+                world: "Floresta Mistica",
+                difficulty: 1,
+                background: ['#4a7c59', '#2d5a3d'],
+                groundColor: '#3d6b4f',
+                platformColor: '#8b5a2b',
+                music: 'forest',
+                enemies: [
+                    { type: 'slime', x: 300, y: 0, color: '#32CD32' },
+                    { type: 'slime', x: 550, y: 0, color: '#32CD32' }
+                ],
+                platforms: [
+                    { x: 150, y: 400, w: 100, h: 20 },
+                    { x: 400, y: 350, w: 120, h: 20 },
+                    { x: 650, y: 300, w: 100, h: 20 }
+                ],
+                coins: [
+                    { x: 180, y: 370 }, { x: 430, y: 320 }, { x: 680, y: 270 },
+                    { x: 350, y: 450 }, { x: 550, y: 450 }
+                ],
+                powerups: [{ type: 'health', x: 200, y: 360 }],
+                dialog: "Bem-vindo, jovem programador! Sou o Sabio Pixel. Sua missao e atravessar os 20 reinos e provar seu valor! Use A/D para mover, ESPACO para pular e X para atacar. Boa sorte!",
+                challenge: {
+                    question: "Em Python, qual funcao usamos para exibir texto na tela?",
+                    code: '# Complete o codigo:\n___("Ola, Mundo!")',
+                    answer: "print",
+                    hint: "E uma funcao que 'imprime' na tela"
+                },
+                decorations: ['tree', 'bush', 'flower'],
+                checkpoint: { x: 50, y: 420 }
+            },
+            {
+                name: "Trilha dos Cogumelos",
+                world: "Floresta Mistica",
+                difficulty: 2,
+                background: ['#5a8c69', '#3d6b4f'],
+                groundColor: '#4a7c59',
+                platformColor: '#a0522d',
+                music: 'forest',
+                enemies: [
+                    { type: 'slime', x: 200, y: 0, color: '#9932CC' },
+                    { type: 'slime', x: 400, y: 0, color: '#9932CC' },
+                    { type: 'mushroom', x: 600, y: 0, color: '#FF6347' }
+                ],
+                platforms: [
+                    { x: 100, y: 400, w: 80, h: 20 },
+                    { x: 250, y: 350, w: 80, h: 20 },
+                    { x: 400, y: 300, w: 100, h: 20 },
+                    { x: 580, y: 350, w: 80, h: 20 },
+                    { x: 720, y: 280, w: 100, h: 20 }
+                ],
+                coins: [
+                    { x: 120, y: 370 }, { x: 280, y: 320 }, { x: 430, y: 270 },
+                    { x: 600, y: 320 }, { x: 750, y: 250 }, { x: 350, y: 450 }
+                ],
+                powerups: [{ type: 'speed', x: 430, y: 250 }],
+                dialog: "Cuidado! Os cogumelos venenosos liberam esporos. Desvie ou ataque rapidamente! Pressione SHIFT para usar o Dash e escapar.",
+                challenge: {
+                    question: "Qual e o resultado de: 10 + 5 * 2?",
+                    code: 'resultado = 10 + 5 * 2\nprint(resultado)\n# Qual numero aparece?',
+                    answer: "20",
+                    hint: "Multiplicacao tem prioridade!"
+                },
+                decorations: ['tree', 'mushroom', 'flower'],
+                checkpoint: { x: 50, y: 420 }
+            },
+            {
+                name: "Ruinas Antigas",
+                world: "Floresta Mistica",
+                difficulty: 3,
+                background: ['#4a6c59', '#2d4a3d'],
+                groundColor: '#3d5b4f',
+                platformColor: '#696969',
+                music: 'forest',
+                enemies: [
+                    { type: 'slime', x: 150, y: 0, color: '#228B22' },
+                    { type: 'bat', x: 350, y: 200, color: '#4B0082' },
+                    { type: 'slime', x: 500, y: 0, color: '#228B22' },
+                    { type: 'bat', x: 700, y: 180, color: '#4B0082' }
+                ],
+                platforms: [
+                    { x: 80, y: 420, w: 100, h: 20 },
+                    { x: 220, y: 360, w: 80, h: 20 },
+                    { x: 350, y: 300, w: 100, h: 20 },
+                    { x: 500, y: 380, w: 80, h: 20 },
+                    { x: 620, y: 320, w: 100, h: 20 },
+                    { x: 770, y: 260, w: 80, h: 20 }
+                ],
+                coins: [
+                    { x: 110, y: 390 }, { x: 250, y: 330 }, { x: 380, y: 270 },
+                    { x: 530, y: 350 }, { x: 650, y: 290 }, { x: 800, y: 230 }
+                ],
+                powerups: [{ type: 'shield', x: 380, y: 250 }],
+                dialog: "Ruinas antigas guardam segredos do passado. Morcegos noturnos patrulham estas terras. Use o Double Jump pressionando C no ar!",
+                challenge: {
+                    question: "Qual estrutura usamos para repetir codigo?",
+                    code: '___ i in range(5):\n    print(i)',
+                    answer: "for",
+                    hint: "Palavra de 3 letras para loops"
+                },
+                decorations: ['stalactite', 'skull', 'torch'],
+                checkpoint: { x: 50, y: 420 }
+            },
+            {
+                name: "BOSS: Guardiao da Floresta",
+                world: "Floresta Mistica",
+                difficulty: 4,
+                background: ['#1a3a2a', '#0d1f15'],
+                groundColor: '#2d4a3d',
+                platformColor: '#4a7c59',
+                music: 'boss',
+                enemies: [
+                    { type: 'boss_treant', x: 600, y: 300, color: '#228B22', health: 500, maxHealth: 500, name: 'Treant Anciao' }
+                ],
+                platforms: [
+                    { x: 0, y: 480, w: 900, h: 70 },
+                    { x: 100, y: 380, w: 120, h: 25 },
+                    { x: 350, y: 320, w: 150, h: 25 },
+                    { x: 600, y: 380, w: 120, h: 25 },
+                    { x: 750, y: 280, w: 100, h: 25 }
+                ],
+                coins: [
+                    { x: 150, y: 350 }, { x: 400, y: 290 }, { x: 650, y: 350 }, { x: 800, y: 250 }
+                ],
+                powerups: [
+                    { type: 'health', x: 150, y: 340 },
+                    { type: 'invulnerable', x: 700, y: 340 }
+                ],
+                dialog: "O GUARDIAO DESPERTA! O Treant Anciao protege a floresta ha seculos. Derrote-o para prosseguir ao proximo mundo!",
+                challenge: {
+                    question: "Como criamos uma lista em Python?",
+                    code: 'numeros = ___1, 2, 3___\n# Quais simbolos usamos?',
+                    answer: "[]",
+                    hint: "Colchetes!"
+                },
+                decorations: ['tree', 'bush', 'flower'],
+                checkpoint: { x: 50, y: 420 },
+                isBoss: true
+            },
+            
+            // MUNDO 2: CAVERNAS CRISTALINAS (Fases 5-8)
+            {
+                name: "Entrada da Caverna",
+                world: "Cavernas Cristalinas",
+                difficulty: 5,
+                background: ['#2c3e50', '#1a252f'],
+                groundColor: '#4a4a4a',
+                platformColor: '#696969',
+                music: 'cave',
+                enemies: [
+                    { type: 'bat', x: 250, y: 180, color: '#8B008B' },
+                    { type: 'bat', x: 450, y: 160, color: '#8B008B' },
+                    { type: 'golem', x: 650, y: 0, color: '#808080' }
+                ],
+                platforms: [
+                    { x: 100, y: 400, w: 100, h: 20 },
+                    { x: 280, y: 340, w: 80, h: 20 },
+                    { x: 450, y: 280, w: 100, h: 20 },
+                    { x: 620, y: 350, w: 80, h: 20 },
+                    { x: 780, y: 280, w: 80, h: 20 }
+                ],
+                coins: [
+                    { x: 130, y: 370 }, { x: 300, y: 310 }, { x: 480, y: 250 },
+                    { x: 640, y: 320 }, { x: 800, y: 250 }, { x: 400, y: 450 }
+                ],
+                powerups: [{ type: 'mana', x: 480, y: 230 }],
+                dialog: "Voce entrou nas Cavernas Cristalinas! Cristais brilham nas paredes. Golems de pedra guardam os tesouros. Cuidado com os morcegos!",
+                challenge: {
+                    question: "Qual tipo de dado e: idade = 25?",
+                    code: 'idade = 25\nprint(type(idade))',
+                    answer: "int",
+                    hint: "Numero inteiro"
+                },
+                decorations: ['crystal', 'stalactite', 'torch'],
+                checkpoint: { x: 50, y: 420 }
+            },
+            {
+                name: "Lago Subterraneo",
+                world: "Cavernas Cristalinas",
+                difficulty: 6,
+                background: ['#1a3a4a', '#0d2030'],
+                groundColor: '#2a4a5a',
+                platformColor: '#3a5a6a',
+                music: 'cave',
+                enemies: [
+                    { type: 'fish', x: 200, y: 350, color: '#00CED1' },
+                    { type: 'fish', x: 450, y: 380, color: '#00CED1' },
+                    { type: 'jellyfish', x: 600, y: 200, color: '#FF69B4' },
+                    { type: 'bat', x: 750, y: 150, color: '#4B0082' }
+                ],
+                platforms: [
+                    { x: 50, y: 380, w: 80, h: 20 },
+                    { x: 180, y: 320, w: 100, h: 20 },
+                    { x: 350, y: 380, w: 80, h: 20 },
+                    { x: 500, y: 300, w: 100, h: 20 },
+                    { x: 680, y: 360, w: 80, h: 20 },
+                    { x: 820, y: 280, w: 80, h: 20 }
+                ],
+                coins: [
+                    { x: 80, y: 350 }, { x: 210, y: 290 }, { x: 380, y: 350 },
+                    { x: 530, y: 270 }, { x: 710, y: 330 }, { x: 840, y: 250 }
+                ],
+                powerups: [{ type: 'shield', x: 530, y: 250 }],
+                dialog: "Um lago subterraneo brilha com luz propria! Peixes eletricos e aguas-vivas flutuam nas aguas escuras. Nao caia!",
+                challenge: {
+                    question: "Como verificamos se algo e verdadeiro?",
+                    code: '___ x > 10:\n    print("Grande!")',
+                    answer: "if",
+                    hint: "Condicional basica"
+                },
+                decorations: ['crystal', 'bubble', 'seaweed'],
+                checkpoint: { x: 50, y: 340 },
+                hasWater: true,
+                waterLevel: 430
+            },
+            {
+                name: "Minas de Cristal",
+                world: "Cavernas Cristalinas",
+                difficulty: 7,
+                background: ['#3a2a4a', '#1f1530'],
+                groundColor: '#4a3a5a',
+                platformColor: '#6a5a7a',
+                music: 'cave',
+                enemies: [
+                    { type: 'golem', x: 200, y: 0, color: '#9370DB' },
+                    { type: 'golem', x: 450, y: 0, color: '#9370DB' },
+                    { type: 'bat', x: 300, y: 180, color: '#BA55D3' },
+                    { type: 'bat', x: 600, y: 160, color: '#BA55D3' },
+                    { type: 'spinner', x: 750, y: 300, color: '#FF00FF' }
+                ],
+                platforms: [
+                    { x: 80, y: 420, w: 80, h: 20 },
+                    { x: 200, y: 360, w: 80, h: 20 },
+                    { x: 340, y: 300, w: 100, h: 20 },
+                    { x: 500, y: 360, w: 80, h: 20 },
+                    { x: 640, y: 280, w: 100, h: 20 },
+                    { x: 800, y: 340, w: 80, h: 20 }
+                ],
+                coins: [
+                    { x: 100, y: 390 }, { x: 220, y: 330 }, { x: 370, y: 270 },
+                    { x: 520, y: 330 }, { x: 670, y: 250 }, { x: 820, y: 310 },
+                    { x: 450, y: 450 }
+                ],
+                powerups: [{ type: 'invulnerable', x: 370, y: 250 }],
+                dialog: "As Minas de Cristal! Spinners giram perigosamente. Os golems aqui sao mais fortes e os cristais brilham intensamente!",
+                challenge: {
+                    question: "Qual funcao retorna o tamanho de uma lista?",
+                    code: 'lista = [1, 2, 3, 4, 5]\nprint(___(lista))',
+                    answer: "len",
+                    hint: "3 letras, significa comprimento"
+                },
+                decorations: ['crystal', 'stalactite', 'torch'],
+                checkpoint: { x: 50, y: 380 }
+            },
+            {
+                name: "BOSS: Rei dos Cristais",
+                world: "Cavernas Cristalinas",
+                difficulty: 8,
+                background: ['#1a0a2a', '#0d0515'],
+                groundColor: '#2a1a3a',
+                platformColor: '#4a2a5a',
+                music: 'boss',
+                enemies: [
+                    { type: 'boss_crystal', x: 650, y: 280, color: '#9932CC', health: 700, maxHealth: 700, name: 'Rei dos Cristais' }
+                ],
+                platforms: [
+                    { x: 0, y: 480, w: 900, h: 70 },
+                    { x: 80, y: 380, w: 100, h: 25 },
+                    { x: 280, y: 320, w: 120, h: 25 },
+                    { x: 500, y: 380, w: 100, h: 25 },
+                    { x: 700, y: 300, w: 120, h: 25 }
+                ],
+                coins: [
+                    { x: 120, y: 350 }, { x: 320, y: 290 }, { x: 540, y: 350 }, { x: 740, y: 270 }
+                ],
+                powerups: [
+                    { type: 'health', x: 120, y: 340 },
+                    { type: 'mana', x: 540, y: 340 }
+                ],
+                dialog: "O REI DOS CRISTAIS EMERGE! Ele dispara raios de cristal e invoca shards magicos. Desvie e contra-ataque!",
+                challenge: {
+                    question: "Como adicionamos um item a uma lista?",
+                    code: 'lista = [1, 2]\nlista.___(3)',
+                    answer: "append",
+                    hint: "Adiciona ao final"
+                },
+                decorations: ['crystal', 'torch', 'stalactite'],
+                checkpoint: { x: 50, y: 420 },
+                isBoss: true
+            },
+            
+            // MUNDO 3: REINO DO CEUS (Fases 9-12)
+            {
+                name: "Escadaria Celestial",
+                world: "Reino dos Ceus",
+                difficulty: 9,
+                background: ['#87CEEB', '#E0F6FF'],
+                groundColor: '#FFFFFF',
+                platformColor: '#B0E0E6',
+                music: 'sky',
+                enemies: [
+                    { type: 'bird', x: 200, y: 200, color: '#FF6347' },
+                    { type: 'bird', x: 450, y: 180, color: '#FF6347' },
+                    { type: 'cloudMonster', x: 650, y: 220, color: '#C0C0C0' }
+                ],
+                platforms: [
+                    { x: 50, y: 420, w: 100, h: 25, moving: true, range: 80 },
+                    { x: 200, y: 350, w: 80, h: 25 },
+                    { x: 380, y: 280, w: 100, h: 25, moving: true, range: 60 },
+                    { x: 550, y: 350, w: 80, h: 25 },
+                    { x: 700, y: 280, w: 100, h: 25 },
+                    { x: 820, y: 200, w: 80, h: 25 }
+                ],
+                coins: [
+                    { x: 80, y: 390 }, { x: 230, y: 320 }, { x: 410, y: 250 },
+                    { x: 580, y: 320 }, { x: 730, y: 250 }, { x: 840, y: 170 }
+                ],
+                powerups: [{ type: 'speed', x: 410, y: 230 }],
+                dialog: "Voce alcancou o Reino dos Ceus! Plataformas moveis testam sua precisao. Passaros e monstros de nuvem patrulham os ceus!",
+                challenge: {
+                    question: "Qual operador verifica igualdade?",
+                    code: 'if x ___ 10:\n    print("E dez!")',
+                    answer: "==",
+                    hint: "Dois sinais de igual"
+                },
+                decorations: ['cloud', 'rainbow', 'star'],
+                checkpoint: { x: 50, y: 380 }
+            },
+            {
+                name: "Templo das Nuvens",
+                world: "Reino dos Ceus",
+                difficulty: 10,
+                background: ['#ADD8E6', '#87CEEB'],
+                groundColor: '#F0F8FF',
+                platformColor: '#E6E6FA',
+                music: 'sky',
+                enemies: [
+                    { type: 'eagle', x: 150, y: 180, color: '#DAA520' },
+                    { type: 'eagle', x: 400, y: 160, color: '#DAA520' },
+                    { type: 'cloudMonster', x: 300, y: 250, color: '#B0C4DE' },
+                    { type: 'cloudMonster', x: 600, y: 230, color: '#B0C4DE' },
+                    { type: 'angel', x: 750, y: 200, color: '#FFFAFA' }
+                ],
+                platforms: [
+                    { x: 50, y: 400, w: 80, h: 25 },
+                    { x: 180, y: 340, w: 100, h: 25, moving: true, range: 70 },
+                    { x: 350, y: 400, w: 80, h: 25 },
+                    { x: 480, y: 320, w: 100, h: 25 },
+                    { x: 630, y: 380, w: 80, h: 25, moving: true, range: 50 },
+                    { x: 780, y: 280, w: 100, h: 25 }
+                ],
+                coins: [
+                    { x: 80, y: 370 }, { x: 210, y: 310 }, { x: 380, y: 370 },
+                    { x: 510, y: 290 }, { x: 660, y: 350 }, { x: 810, y: 250 },
+                    { x: 400, y: 450 }
+                ],
+                powerups: [{ type: 'doubleJump', x: 510, y: 270 }],
+                dialog: "O Templo das Nuvens! Aguias douradas e anjos guardioes protegem este lugar sagrado. As plataformas se movem!",
+                challenge: {
+                    question: "Como definimos uma funcao?",
+                    code: '___ minha_funcao():\n    return "Ola"',
+                    answer: "def",
+                    hint: "Abreviacao de definir"
+                },
+                decorations: ['cloud', 'star', 'rainbow'],
+                checkpoint: { x: 50, y: 360 }
+            },
+            {
+                name: "Ponte do Arco-Iris",
+                world: "Reino dos Ceus",
+                difficulty: 11,
+                background: ['#FFB6C1', '#87CEEB'],
+                groundColor: '#FF69B4',
+                platformColor: '#FF1493',
+                music: 'sky',
+                enemies: [
+                    { type: 'angel', x: 200, y: 180, color: '#FFD700' },
+                    { type: 'angel', x: 450, y: 200, color: '#FFD700' },
+                    { type: 'eagle', x: 350, y: 150, color: '#FF4500' },
+                    { type: 'eagle', x: 650, y: 170, color: '#FF4500' },
+                    { type: 'cloudMonster', x: 800, y: 220, color: '#FF69B4' }
+                ],
+                platforms: [
+                    { x: 30, y: 420, w: 80, h: 20, rainbow: true },
+                    { x: 150, y: 360, w: 100, h: 20, rainbow: true },
+                    { x: 300, y: 300, w: 80, h: 20, rainbow: true },
+                    { x: 430, y: 360, w: 100, h: 20, rainbow: true },
+                    { x: 580, y: 280, w: 80, h: 20, rainbow: true },
+                    { x: 720, y: 340, w: 100, h: 20, rainbow: true },
+                    { x: 850, y: 260, w: 50, h: 20, rainbow: true }
+                ],
+                coins: [
+                    { x: 60, y: 390 }, { x: 180, y: 330 }, { x: 330, y: 270 },
+                    { x: 460, y: 330 }, { x: 610, y: 250 }, { x: 750, y: 310 },
+                    { x: 860, y: 230 }
+                ],
+                powerups: [{ type: 'invulnerable', x: 330, y: 250 }, { type: 'speed', x: 610, y: 230 }],
+                dialog: "A Ponte do Arco-Iris! Cores vibrantes iluminam seu caminho. Anjos dourados e aguias de fogo guardam a passagem para o boss!",
+                challenge: {
+                    question: "Como percorremos uma lista?",
+                    code: 'lista = [1, 2, 3]\nfor item ___ lista:\n    print(item)',
+                    answer: "in",
+                    hint: "Palavra de 2 letras"
+                },
+                decorations: ['rainbow', 'star', 'cloud'],
+                checkpoint: { x: 50, y: 380 }
+            },
+            {
+                name: "BOSS: Fenix Celestial",
+                world: "Reino dos Ceus",
+                difficulty: 12,
+                background: ['#FF6347', '#FFD700'],
+                groundColor: '#FF4500',
+                platformColor: '#FF8C00',
+                music: 'boss',
+                enemies: [
+                    { type: 'boss_phoenix', x: 650, y: 200, color: '#FF4500', health: 900, maxHealth: 900, name: 'Fenix Celestial' }
+                ],
+                platforms: [
+                    { x: 0, y: 480, w: 900, h: 70 },
+                    { x: 50, y: 380, w: 120, h: 25 },
+                    { x: 250, y: 300, w: 100, h: 25 },
+                    { x: 450, y: 380, w: 120, h: 25 },
+                    { x: 650, y: 280, w: 100, h: 25 },
+                    { x: 800, y: 350, w: 100, h: 25 }
+                ],
+                coins: [
+                    { x: 100, y: 350 }, { x: 300, y: 270 }, { x: 500, y: 350 }, { x: 700, y: 250 }
+                ],
+                powerups: [
+                    { type: 'health', x: 100, y: 340 },
+                    { type: 'invulnerable', x: 500, y: 340 },
+                    { type: 'mana', x: 750, y: 310 }
+                ],
+                dialog: "A FENIX RENASCE DAS CHAMAS! Ela dispara bolas de fogo e cria ondas de calor. Desvie das chamas e ataque quando baixar!",
+                challenge: {
+                    question: "Como retornamos um valor de uma funcao?",
+                    code: 'def soma(a, b):\n    ___ a + b',
+                    answer: "return",
+                    hint: "Devolve o resultado"
+                },
+                decorations: ['torch', 'star', 'cloud'],
+                checkpoint: { x: 50, y: 420 },
+                isBoss: true
+            },
+            
+            // MUNDO 4: VULCAO INFERNAL (Fases 13-16)
+            {
+                name: "Borda do Vulcao",
+                world: "Vulcao Infernal",
+                difficulty: 13,
+                background: ['#8B0000', '#FF4500'],
+                groundColor: '#CC5500',
+                platformColor: '#8B4513',
+                music: 'lava',
+                enemies: [
+                    { type: 'fireslime', x: 200, y: 0, color: '#FF4500' },
+                    { type: 'fireslime', x: 400, y: 0, color: '#FF4500' },
+                    { type: 'dragon', x: 600, y: 180, color: '#FF0000' }
+                ],
+                platforms: [
+                    { x: 80, y: 400, w: 100, h: 20 },
+                    { x: 230, y: 340, w: 80, h: 20 },
+                    { x: 380, y: 280, w: 100, h: 20 },
+                    { x: 540, y: 350, w: 80, h: 20 },
+                    { x: 680, y: 280, w: 100, h: 20 },
+                    { x: 830, y: 220, w: 70, h: 20 }
+                ],
+                coins: [
+                    { x: 110, y: 370 }, { x: 260, y: 310 }, { x: 410, y: 250 },
+                    { x: 560, y: 320 }, { x: 710, y: 250 }, { x: 850, y: 190 }
+                ],
+                powerups: [{ type: 'shield', x: 410, y: 230 }],
+                dialog: "O Vulcao Infernal! Lava flui por todos os lados. Slimes de fogo e dragoes guardam este reino ardente. Nao toque na lava!",
+                challenge: {
+                    question: "Como criamos um dicionario?",
+                    code: 'pessoa = ___"nome": "Ana", "idade": 25___',
+                    answer: "{}",
+                    hint: "Chaves!"
+                },
+                decorations: ['torch', 'skull', 'crystal'],
+                checkpoint: { x: 50, y: 360 },
+                hasLava: true,
+                lavaLevel: 480
+            },
+            {
+                name: "Rios de Lava",
+                world: "Vulcao Infernal",
+                difficulty: 14,
+                background: ['#8B0000', '#DC143C'],
+                groundColor: '#B22222',
+                platformColor: '#A0522D',
+                music: 'lava',
+                enemies: [
+                    { type: 'fireslime', x: 150, y: 0, color: '#FF6347' },
+                    { type: 'dragon', x: 300, y: 160, color: '#FF4500' },
+                    { type: 'fireslime', x: 450, y: 0, color: '#FF6347' },
+                    { type: 'dragon', x: 600, y: 180, color: '#FF4500' },
+                    { type: 'lavaGolem', x: 750, y: 0, color: '#8B0000' }
+                ],
+                platforms: [
+                    { x: 50, y: 380, w: 80, h: 20 },
+                    { x: 180, y: 320, w: 100, h: 20, moving: true, range: 50 },
+                    { x: 350, y: 380, w: 80, h: 20 },
+                    { x: 480, y: 300, w: 100, h: 20 },
+                    { x: 640, y: 360, w: 80, h: 20, moving: true, range: 60 },
+                    { x: 800, y: 280, w: 100, h: 20 }
+                ],
+                coins: [
+                    { x: 80, y: 350 }, { x: 210, y: 290 }, { x: 380, y: 350 },
+                    { x: 510, y: 270 }, { x: 670, y: 330 }, { x: 830, y: 250 },
+                    { x: 450, y: 450 }
+                ],
+                powerups: [{ type: 'invulnerable', x: 510, y: 250 }],
+                dialog: "Rios de lava cortam seu caminho! Plataformas moveis e dragoes flamejantes. Golems de lava sao quase invulneraveis!",
+                challenge: {
+                    question: "Como acessamos um valor de um dicionario?",
+                    code: 'pessoa = {"nome": "Ana"}\nprint(pessoa___"nome"___)',
+                    answer: "[]",
+                    hint: "Colchetes com a chave"
+                },
+                decorations: ['torch', 'skull', 'stalactite'],
+                checkpoint: { x: 50, y: 340 },
+                hasLava: true,
+                lavaLevel: 460
+            },
+            {
+                name: "Coracao do Vulcao",
+                world: "Vulcao Infernal",
+                difficulty: 15,
+                background: ['#4a0000', '#8B0000'],
+                groundColor: '#800000',
+                platformColor: '#A52A2A',
+                music: 'lava',
+                enemies: [
+                    { type: 'lavaGolem', x: 200, y: 0, color: '#B22222' },
+                    { type: 'dragon', x: 350, y: 150, color: '#FF4500' },
+                    { type: 'dragon', x: 550, y: 170, color: '#FF4500' },
+                    { type: 'lavaGolem', x: 700, y: 0, color: '#B22222' },
+                    { type: 'fireslime', x: 450, y: 0, color: '#FF6347' }
+                ],
+                platforms: [
+                    { x: 30, y: 400, w: 80, h: 20 },
+                    { x: 150, y: 340, w: 80, h: 20 },
+                    { x: 280, y: 280, w: 100, h: 20, moving: true, range: 40 },
+                    { x: 440, y: 340, w: 80, h: 20 },
+                    { x: 570, y: 260, w: 100, h: 20 },
+                    { x: 720, y: 320, w: 80, h: 20, moving: true, range: 50 },
+                    { x: 850, y: 240, w: 50, h: 20 }
+                ],
+                coins: [
+                    { x: 60, y: 370 }, { x: 180, y: 310 }, { x: 310, y: 250 },
+                    { x: 470, y: 310 }, { x: 600, y: 230 }, { x: 750, y: 290 },
+                    { x: 860, y: 210 }
+                ],
+                powerups: [
+                    { type: 'health', x: 310, y: 230 },
+                    { type: 'shield', x: 600, y: 210 }
+                ],
+                dialog: "O Coracao do Vulcao pulsa com energia! Este e o ponto mais perigoso. Prepare-se para enfrentar o Senhor das Chamas!",
+                challenge: {
+                    question: "Qual metodo remove um item de uma lista pelo indice?",
+                    code: 'lista = [1, 2, 3]\nlista.___(1)',
+                    answer: "pop",
+                    hint: "3 letras, remove e retorna"
+                },
+                decorations: ['torch', 'crystal', 'skull'],
+                checkpoint: { x: 50, y: 360 },
+                hasLava: true,
+                lavaLevel: 450
+            },
+            {
+                name: "BOSS: Senhor das Chamas",
+                world: "Vulcao Infernal",
+                difficulty: 16,
+                background: ['#1a0000', '#4a0000'],
+                groundColor: '#330000',
+                platformColor: '#660000',
+                music: 'boss',
+                enemies: [
+                    { type: 'boss_flame', x: 650, y: 250, color: '#FF0000', health: 1200, maxHealth: 1200, name: 'Senhor das Chamas' }
+                ],
+                platforms: [
+                    { x: 0, y: 480, w: 900, h: 70 },
+                    { x: 50, y: 380, w: 100, h: 25 },
+                    { x: 220, y: 300, w: 120, h: 25 },
+                    { x: 420, y: 380, w: 100, h: 25 },
+                    { x: 600, y: 280, w: 120, h: 25 },
+                    { x: 780, y: 360, w: 100, h: 25 }
+                ],
+                coins: [
+                    { x: 90, y: 350 }, { x: 270, y: 270 }, { x: 460, y: 350 }, { x: 650, y: 250 }
+                ],
+                powerups: [
+                    { type: 'health', x: 90, y: 340 },
+                    { type: 'invulnerable', x: 460, y: 340 },
+                    { type: 'mana', x: 730, y: 320 }
+                ],
+                dialog: "O SENHOR DAS CHAMAS APARECE! Seu poder e devastador. Ele invoca meteoros e cria explosoes de lava. Seja rapido e preciso!",
+                challenge: {
+                    question: "Como verificamos se um item esta em uma lista?",
+                    code: 'if 5 ___ [1, 2, 5]:\n    print("Encontrado!")',
+                    answer: "in",
+                    hint: "Dentro de"
+                },
+                decorations: ['torch', 'skull', 'crystal'],
+                checkpoint: { x: 50, y: 420 },
+                isBoss: true
+            },
+            
+            // MUNDO 5: FORTALEZA DIGITAL (Fases 17-20)
+            {
+                name: "Portal Digital",
+                world: "Fortaleza Digital",
+                difficulty: 17,
+                background: ['#0a0a2a', '#1a0a3a'],
+                groundColor: '#1a1a3a',
+                platformColor: '#00ff88',
+                music: 'digital',
+                enemies: [
+                    { type: 'virus', x: 200, y: 200, color: '#00FF00' },
+                    { type: 'virus', x: 450, y: 180, color: '#00FF00' },
+                    { type: 'glitch', x: 650, y: 220, color: '#FF00FF' }
+                ],
+                platforms: [
+                    { x: 80, y: 400, w: 100, h: 20, digital: true },
+                    { x: 230, y: 340, w: 80, h: 20, digital: true },
+                    { x: 380, y: 280, w: 100, h: 20, digital: true, moving: true, range: 60 },
+                    { x: 550, y: 350, w: 80, h: 20, digital: true },
+                    { x: 700, y: 280, w: 100, h: 20, digital: true },
+                    { x: 840, y: 220, w: 60, h: 20, digital: true }
+                ],
+                coins: [
+                    { x: 110, y: 370 }, { x: 260, y: 310 }, { x: 410, y: 250 },
+                    { x: 580, y: 320 }, { x: 730, y: 250 }, { x: 860, y: 190 }
+                ],
+                powerups: [{ type: 'speed', x: 410, y: 230 }],
+                dialog: "Voce entrou na Fortaleza Digital! Virus e glitches corrompem o sistema. Plataformas digitais brilham com codigo!",
+                challenge: {
+                    question: "Como importamos um modulo?",
+                    code: '___ random',
+                    answer: "import",
+                    hint: "Palavra para trazer modulos"
+                },
+                decorations: ['pixel', 'code', 'circuit'],
+                checkpoint: { x: 50, y: 360 }
+            },
+            {
+                name: "Matrix de Dados",
+                world: "Fortaleza Digital",
+                difficulty: 18,
+                background: ['#000a1a', '#001a2a'],
+                groundColor: '#0a1a2a',
+                platformColor: '#00ffff',
+                music: 'digital',
+                enemies: [
+                    { type: 'virus', x: 150, y: 180, color: '#FF0000' },
+                    { type: 'glitch', x: 300, y: 200, color: '#00FFFF' },
+                    { type: 'virus', x: 500, y: 160, color: '#FF0000' },
+                    { type: 'glitch', x: 650, y: 190, color: '#00FFFF' },
+                    { type: 'firewall', x: 800, y: 0, color: '#FF4500' }
+                ],
+                platforms: [
+                    { x: 50, y: 400, w: 80, h: 20, digital: true },
+                    { x: 170, y: 340, w: 100, h: 20, digital: true, moving: true, range: 50 },
+                    { x: 330, y: 280, w: 80, h: 20, digital: true },
+                    { x: 470, y: 350, w: 100, h: 20, digital: true },
+                    { x: 620, y: 280, w: 80, h: 20, digital: true, moving: true, range: 40 },
+                    { x: 770, y: 220, w: 100, h: 20, digital: true }
+                ],
+                coins: [
+                    { x: 80, y: 370 }, { x: 200, y: 310 }, { x: 360, y: 250 },
+                    { x: 500, y: 320 }, { x: 650, y: 250 }, { x: 800, y: 190 },
+                    { x: 400, y: 450 }
+                ],
+                powerups: [{ type: 'invulnerable', x: 360, y: 230 }],
+                dialog: "A Matrix de Dados! Firewalls bloqueiam seu caminho. Glitches teleportam aleatoriamente. Virus vermelho e mais perigoso!",
+                challenge: {
+                    question: "Como geramos um numero aleatorio entre 1 e 10?",
+                    code: 'import random\nrandom.___(1, 10)',
+                    answer: "randint",
+                    hint: "Random integer"
+                },
+                decorations: ['pixel', 'circuit', 'code'],
+                checkpoint: { x: 50, y: 360 }
+            },
+            {
+                name: "Nucleo do Sistema",
+                world: "Fortaleza Digital",
+                difficulty: 19,
+                background: ['#0a000a', '#1a001a'],
+                groundColor: '#1a0a1a',
+                platformColor: '#ff00ff',
+                music: 'digital',
+                enemies: [
+                    { type: 'firewall', x: 150, y: 0, color: '#FF4500' },
+                    { type: 'virus', x: 300, y: 170, color: '#00FF00' },
+                    { type: 'glitch', x: 450, y: 190, color: '#FF00FF' },
+                    { type: 'firewall', x: 600, y: 0, color: '#FF4500' },
+                    { type: 'virus', x: 750, y: 180, color: '#00FF00' }
+                ],
+                platforms: [
+                    { x: 30, y: 400, w: 80, h: 20, digital: true },
+                    { x: 150, y: 340, w: 80, h: 20, digital: true },
+                    { x: 280, y: 280, w: 100, h: 20, digital: true, moving: true, range: 50 },
+                    { x: 440, y: 340, w: 80, h: 20, digital: true },
+                    { x: 570, y: 260, w: 100, h: 20, digital: true },
+                    { x: 720, y: 320, w: 80, h: 20, digital: true, moving: true, range: 40 },
+                    { x: 850, y: 240, w: 50, h: 20, digital: true }
+                ],
+                coins: [
+                    { x: 60, y: 370 }, { x: 180, y: 310 }, { x: 310, y: 250 },
+                    { x: 470, y: 310 }, { x: 600, y: 230 }, { x: 750, y: 290 },
+                    { x: 860, y: 210 }
+                ],
+                powerups: [
+                    { type: 'health', x: 310, y: 230 },
+                    { type: 'mana', x: 600, y: 210 }
+                ],
+                dialog: "O Nucleo do Sistema! Aqui tudo e caos. Firewalls, virus e glitches em todos os lugares. O Boss Final espera voce!",
+                challenge: {
+                    question: "Como tratamos erros em Python?",
+                    code: '___:\n    codigo_perigoso()\nexcept:\n    print("Erro!")',
+                    answer: "try",
+                    hint: "Tentar executar"
+                },
+                decorations: ['circuit', 'pixel', 'code'],
+                checkpoint: { x: 50, y: 360 }
+            },
+            {
+                name: "BOSS FINAL: Virus Supremo",
+                world: "Fortaleza Digital",
+                difficulty: 20,
+                background: ['#000000', '#0a0a0a'],
+                groundColor: '#0a0a0a',
+                platformColor: '#FFD700',
+                music: 'finalboss',
+                enemies: [
+                    { type: 'boss_virus', x: 600, y: 200, color: '#FF0000', health: 2000, maxHealth: 2000, name: 'VIRUS SUPREMO' }
+                ],
+                platforms: [
+                    { x: 0, y: 480, w: 900, h: 70 },
+                    { x: 50, y: 380, w: 120, h: 25 },
+                    { x: 220, y: 300, w: 100, h: 25 },
+                    { x: 400, y: 380, w: 120, h: 25 },
+                    { x: 580, y: 280, w: 100, h: 25 },
+                    { x: 750, y: 350, w: 120, h: 25 }
+                ],
+                coins: [
+                    { x: 100, y: 350 }, { x: 260, y: 270 }, { x: 450, y: 350 }, { x: 620, y: 250 }, { x: 800, y: 320 }
+                ],
+                powerups: [
+                    { type: 'health', x: 100, y: 340 },
+                    { type: 'invulnerable', x: 450, y: 340 },
+                    { type: 'mana', x: 800, y: 310 },
+                    { type: 'shield', x: 260, y: 260 }
+                ],
+                dialog: "O VIRUS SUPREMO! O boss final de toda sua jornada. Ele tem multiplas fases e ataques devastadores. Use TUDO que aprendeu!",
+                challenge: {
+                    question: "Qual o resultado de: [x**2 for x in range(4)]?",
+                    code: '# List comprehension',
+                    answer: "[0, 1, 4, 9]",
+                    hint: "Quadrado de 0, 1, 2, 3"
+                },
+                decorations: ['circuit', 'pixel', 'code'],
+                checkpoint: { x: 50, y: 420 },
+                isBoss: true,
+                isFinalBoss: true
+            }
+        ];
+        
+        // ==================== JOGADOR ====================
+        const player = {
+            x: 50,
+            y: 300,
+            width: 36,
+            height: 44,
+            velocityX: 0,
+            velocityY: 0,
+            baseSpeed: 5,
+            speed: 5,
+            jumpForce: -15,
+            gravity: 0.7,
+            grounded: false,
+            health: 100,
+            maxHealth: 100,
+            mana: 100,
+            maxMana: 100,
+            manaRegen: 0.05,
+            facing: 1,
+            attacking: false,
+            attackTimer: 0,
+            attackDamage: 25,
+            invincible: false,
+            invincibleTimer: 0,
+            animFrame: 0,
+            animTimer: 0,
+            // Novas mecanicas
+            canDoubleJump: true,
+            hasDoubleJumped: false,
+            dashPower: 15,
+            isDashing: false,
+            dashTimer: 0,
+            dashCooldown: 0,
+            wallSliding: false,
+            wallJumpTimer: 0,
+            // Skills
+            skills: {
+                fireball: { cooldown: 0, maxCooldown: 120, manaCost: 20, damage: 50, unlocked: true },
+                heal: { cooldown: 0, maxCooldown: 300, manaCost: 40, healAmount: 30, unlocked: true },
+                lightning: { cooldown: 0, maxCooldown: 180, manaCost: 35, damage: 80, unlocked: false },
+                ultimate: { cooldown: 0, maxCooldown: 600, manaCost: 80, damage: 200, unlocked: false }
+            }
+        };
+        
+        // Arrays do jogo
+        let enemies = [];
+        let platforms = [];
+        let coins = [];
+        let particles = [];
+        let decorations = [];
+        let powerups = [];
+        let projectiles = [];
+        let damageNumbers = [];
+        
+        // Sistema de power-ups
+        const powerupEffects = {
+            shield: { color: '#00FFFF', duration: 400, icon: 'S' },
+            speed: { color: '#FF00FF', duration: 400, icon: 'V' },
+            invulnerable: { color: '#FFFF00', duration: 300, icon: 'I' },
+            health: { color: '#FF4444', duration: 0, icon: '+', instant: true },
+            mana: { color: '#4444FF', duration: 0, icon: 'M', instant: true },
+            doubleJump: { color: '#00FF00', duration: 600, icon: 'J' }
+        };
+        
+        let activePowerups = {
+            shield: false,
+            speed: false,
+            invulnerable: false,
+            doubleJump: false,
+            shieldCounter: 0,
+            speedCounter: 0,
+            invulnerableCounter: 0,
+            doubleJumpCounter: 0
+        };
+        
+        // ==================== SISTEMA DE AUDIO ====================
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioContext;
+        }
+        
+        function playNote(frequency, duration, type = 'square', volume = 0.1) {
+            if (!musicPlaying) return;
+            const ctx = initAudio();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            gainNode.gain.value = volume;
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+            
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + duration);
+            
+            return oscillator;
+        }
+        
+        const musicPatterns = {
+            forest: { notes: [262, 294, 330, 349, 392, 349, 330, 294], tempo: 250, type: 'square' },
+            cave: { notes: [147, 165, 175, 196, 175, 165, 147, 131], tempo: 400, type: 'triangle' },
+            sky: { notes: [523, 587, 659, 698, 784, 698, 659, 587], tempo: 300, type: 'sine' },
+            lava: { notes: [196, 175, 165, 147, 165, 175, 196, 220], tempo: 280, type: 'sawtooth' },
+            digital: { notes: [440, 523, 659, 784, 659, 523, 440, 349], tempo: 200, type: 'square' },
+            boss: { notes: [147, 175, 196, 220, 196, 175, 147, 131], tempo: 200, type: 'sawtooth' },
+            finalboss: { notes: [131, 147, 165, 196, 220, 262, 220, 196], tempo: 180, type: 'sawtooth' }
+        };
+        
+        let musicInterval = null;
+        let currentNoteIndex = 0;
+        
+        function playMusic(patternName) {
+            if (!musicPlaying) return;
+            stopMusic();
+            
+            const pattern = musicPatterns[patternName];
+            if (!pattern) return;
+            
+            currentNoteIndex = 0;
+            musicInterval = setInterval(() => {
+                if (!musicPlaying) {
+                    stopMusic();
+                    return;
+                }
+                playNote(pattern.notes[currentNoteIndex], pattern.tempo / 1000, pattern.type, 0.04);
+                currentNoteIndex = (currentNoteIndex + 1) % pattern.notes.length;
+            }, pattern.tempo);
+        }
+        
+        function stopMusic() {
+            if (musicInterval) {
+                clearInterval(musicInterval);
+                musicInterval = null;
+            }
+        }
+        
+        function toggleMusic() {
+            musicPlaying = !musicPlaying;
+            document.getElementById('musicToggle').textContent = musicPlaying ? 'MUSICA ON' : 'MUSICA OFF';
+            
+            if (musicPlaying && gameState === 'playing') {
+                playMusic(levels[currentLevel].music);
+            } else {
+                stopMusic();
+            }
+        }
+        
+        function playSFX(type) {
+            if (!musicPlaying) return;
+            switch(type) {
+                case 'jump':
+                    playNote(400, 0.08, 'square', 0.08);
+                    setTimeout(() => playNote(600, 0.08, 'square', 0.06), 40);
+                    break;
+                case 'doubleJump':
+                    playNote(600, 0.08, 'square', 0.08);
+                    setTimeout(() => playNote(800, 0.1, 'square', 0.06), 40);
+                    break;
+                case 'dash':
+                    playNote(200, 0.15, 'sawtooth', 0.1);
+                    break;
+                case 'coin':
+                    playNote(988, 0.08, 'square', 0.08);
+                    setTimeout(() => playNote(1319, 0.12, 'square', 0.06), 60);
+                    break;
+                case 'hit':
+                    playNote(150, 0.15, 'sawtooth', 0.12);
+                    break;
+                case 'enemy':
+                    playNote(200, 0.08, 'square', 0.08);
+                    setTimeout(() => playNote(150, 0.12, 'square', 0.08), 80);
+                    break;
+                case 'levelUp':
+                    [523, 659, 784, 1047].forEach((note, i) => {
+                        setTimeout(() => playNote(note, 0.15, 'square', 0.08), i * 120);
+                    });
+                    break;
+                case 'attack':
+                    playNote(300, 0.04, 'sawtooth', 0.1);
+                    playNote(400, 0.08, 'sawtooth', 0.08);
+                    break;
+                case 'skill':
+                    playNote(523, 0.1, 'sine', 0.1);
+                    setTimeout(() => playNote(784, 0.15, 'sine', 0.08), 50);
+                    break;
+                case 'heal':
+                    [392, 494, 587, 784].forEach((note, i) => {
+                        setTimeout(() => playNote(note, 0.2, 'sine', 0.06), i * 80);
+                    });
+                    break;
+                case 'achievement':
+                    [523, 659, 784, 1047, 784, 1047].forEach((note, i) => {
+                        setTimeout(() => playNote(note, 0.15, 'square', 0.06), i * 100);
+                    });
+                    break;
+                case 'bossHit':
+                    playNote(100, 0.2, 'sawtooth', 0.15);
+                    setTimeout(() => playNote(80, 0.2, 'sawtooth', 0.12), 100);
+                    break;
+                case 'xp':
+                    playNote(880, 0.05, 'sine', 0.05);
+                    break;
+            }
+        }
+        
+        // ==================== CONTROLES ====================
+        const keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            
+            if (e.code === 'Enter' && gameState === 'dialog') {
+                hideDialog();
+            }
+            if (e.code === 'KeyX' && gameState === 'playing' && !player.attacking) {
+                player.attacking = true;
+                player.attackTimer = 12;
+                playSFX('attack');
+            }
+            // Dash
+            if (e.code === 'ShiftLeft' && gameState === 'playing' && player.dashCooldown <= 0 && !player.isDashing) {
+                player.isDashing = true;
+                player.dashTimer = 8;
+                player.dashCooldown = 40;
+                player.velocityX = player.dashPower * player.facing;
+                playSFX('dash');
+                screenShake = 5;
+                screenShakeIntensity = 3;
+                for (let i = 0; i < 10; i++) {
+                    createParticle(player.x + player.width/2, player.y + player.height/2, '#00FFFF', 'dash');
+                }
+            }
+            // Double Jump
+            if ((e.code === 'KeyC') && gameState === 'playing' && !player.grounded && player.canDoubleJump && !player.hasDoubleJumped) {
+                player.velocityY = player.jumpForce * 0.85;
+                player.hasDoubleJumped = true;
+                playSFX('doubleJump');
+                for (let i = 0; i < 8; i++) {
+                    createParticle(player.x + player.width/2, player.y + player.height, '#00FF88', 'jump');
+                }
+            }
+            // Skills
+            if (e.code === 'Digit1' && gameState === 'playing') useSkill('fireball');
+            if (e.code === 'Digit2' && gameState === 'playing') useSkill('heal');
+            if (e.code === 'Digit3' && gameState === 'playing') useSkill('lightning');
+            if (e.code === 'Digit4' && gameState === 'playing') useSkill('ultimate');
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // ==================== SISTEMA DE SKILLS ====================
+        function useSkill(skillName) {
+            const skill = player.skills[skillName];
+            if (!skill || !skill.unlocked || skill.cooldown > 0 || player.mana < skill.manaCost) return;
+            
+            player.mana -= skill.manaCost;
+            skill.cooldown = skill.maxCooldown;
+            playSFX('skill');
+            
+            switch(skillName) {
+                case 'fireball':
+                    projectiles.push({
+                        x: player.x + (player.facing === 1 ? player.width : 0),
+                        y: player.y + player.height/2,
+                        velocityX: 12 * player.facing,
+                        velocityY: 0,
+                        damage: skill.damage,
+                        type: 'fireball',
+                        life: 120,
+                        size: 15
+                    });
+                    for (let i = 0; i < 8; i++) {
+                        createParticle(player.x + player.width/2, player.y + player.height/2, '#FF4500', 'fire');
+                    }
+                    break;
+                case 'heal':
+                    player.health = Math.min(player.maxHealth, player.health + skill.healAmount);
+                    playSFX('heal');
+                    for (let i = 0; i < 15; i++) {
+                        createParticle(player.x + player.width/2, player.y + player.height/2, '#00FF00', 'heal');
+                    }
+                    showDamageNumber(player.x + player.width/2, player.y, '+' + skill.healAmount, 'heal');
+                    break;
+                case 'lightning':
+                    enemies.forEach(enemy => {
+                        if (enemy.alive && Math.abs(enemy.x - player.x) < 300) {
+                            damageEnemy(enemy, skill.damage, true);
+                            for (let i = 0; i < 10; i++) {
+                                createParticle(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#FFFF00', 'lightning');
+                            }
+                        }
+                    });
+                    screenShake = 10;
+                    screenShakeIntensity = 5;
+                    break;
+                case 'ultimate':
+                    enemies.forEach(enemy => {
+                        if (enemy.alive) {
+                            damageEnemy(enemy, skill.damage, true);
+                            for (let i = 0; i < 15; i++) {
+                                createParticle(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#FF00FF', 'ultimate');
+                            }
+                        }
+                    });
+                    screenShake = 20;
+                    screenShakeIntensity = 8;
+                    player.invincible = true;
+                    player.invincibleTimer = 60;
+                    break;
+            }
+            
+            updateSkillUI();
+        }
+        
+        function updateSkillUI() {
+            ['fireball', 'heal', 'lightning', 'ultimate'].forEach((skillName, i) => {
+                const skill = player.skills[skillName];
+                const slot = document.getElementById('skill' + (i + 1));
+                const cdEl = document.getElementById('skill' + (i + 1) + 'CD');
+                
+                if (skill.unlocked) {
+                    slot.classList.remove('locked');
+                    if (skill.cooldown <= 0 && player.mana >= skill.manaCost) {
+                        slot.classList.add('ready');
+                    } else {
+                        slot.classList.remove('ready');
+                    }
+                    cdEl.style.height = (skill.cooldown / skill.maxCooldown * 100) + '%';
+                }
+            });
+        }
+        
+        // ==================== FUNCOES DO JOGO ====================
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            initAudio();
+            musicPlaying = true;
+            document.getElementById('musicToggle').textContent = 'MUSICA ON';
+            lives = 3;
+            score = 0;
+            gold = 0;
+            playerXP = 0;
+            playerLevel = 1;
+            xpToNextLevel = 100;
+            player.health = player.maxHealth;
+            player.mana = player.maxMana;
+            loadLevel(0);
+            showDialog(levels[0].dialog);
+        }
+        
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('victoryScreen').style.display = 'none';
+            score = 0;
+            currentLevel = 0;
+            lives = 3;
+            gold = 0;
+            playerXP = 0;
+            playerLevel = 1;
+            xpToNextLevel = 100;
+            player.health = player.maxHealth;
+            player.mana = player.maxMana;
+            document.getElementById('score').textContent = score;
+            updateUI();
+            loadLevel(0);
+            showDialog(levels[0].dialog);
+        }
+        
+        function loadLevel(levelIndex) {
+            currentLevel = levelIndex;
+            const level = levels[levelIndex];
+            
+            levelStartTime = Date.now();
+            tookDamageThisLevel = false;
+            
+            // Reset player
+            player.x = level.checkpoint ? level.checkpoint.x : 50;
+            player.y = level.checkpoint ? level.checkpoint.y : 300;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.grounded = false;
+            player.hasDoubleJumped = false;
+            player.isDashing = false;
+            player.dashCooldown = 0;
+            
+            // Load platforms
+            platforms = level.platforms.map(p => ({
+                ...p,
+                originalX: p.x,
+                originalY: p.y,
+                moveOffset: 0,
+                moveDir: 1
+            }));
+            
+            // Load coins
+            coins = level.coins.map(c => ({...c, collected: false, animY: 0}));
+            
+            // Load powerups
+            powerups = (level.powerups || []).map(p => ({...p, collected: false}));
+            
+            // Load enemies
+            enemies = level.enemies.map(e => {
+                const isBoss = e.type && e.type.startsWith('boss_');
+                const isFlying = ['bird', 'bat', 'fish', 'jellyfish', 'eagle', 'wizard', 'dragon', 'cloudMonster', 'angel', 'virus', 'glitch', 'phoenix'].includes(e.type) || isBoss;
+                
+                return {
+                    ...e,
+                    y: isFlying ? e.y : 420,
+                    width: isBoss ? 70 : (e.type === 'dragon' ? 50 : (e.type === 'golem' || e.type === 'lavaGolem' || e.type === 'firewall' ? 45 : 34)),
+                    height: isBoss ? 80 : (e.type === 'dragon' ? 45 : (e.type === 'golem' || e.type === 'lavaGolem' || e.type === 'firewall' ? 50 : 34)),
+                    velocityX: isFlying ? 2.5 : 2,
+                    direction: 1,
+                    alive: true,
+                    animFrame: 0,
+                    startX: e.x,
+                    startY: e.y,
+                    floatOffset: Math.random() * Math.PI * 2,
+                    health: e.health || (isBoss ? 500 : (level.difficulty * 2)),
+                    maxHealth: e.maxHealth || e.health || (isBoss ? 500 : (level.difficulty * 2)),
+                    attackTimer: 0,
+                    attackPattern: 0,
+                    phase: 1
+                };
+            });
+            
+            // Generate decorations
+            generateDecorations(level);
+            
+            // Reset active powerups
+            Object.keys(activePowerups).forEach(key => {
+                if (typeof activePowerups[key] === 'boolean') activePowerups[key] = false;
+                else activePowerups[key] = 0;
+            });
+            
+            // Clear projectiles
+            projectiles = [];
+            particles = [];
+            damageNumbers = [];
+            
+            // Update UI
+            document.getElementById('levelNum').textContent = levelIndex + 1;
+            document.getElementById('levelName').textContent = level.name;
+            
+            // Show level indicator
+            showLevelIndicator(level);
+            
+            // Play music
+            if (musicPlaying) {
+                playMusic(level.music);
+            }
+            
+            // Show boss health if boss level
+            if (level.isBoss) {
+                const boss = enemies.find(e => e.type && e.type.startsWith('boss_'));
+                if (boss) {
+                    document.getElementById('bossHealthContainer').style.display = 'block';
+                    document.getElementById('bossName').textContent = boss.name || 'BOSS';
+                    updateBossHealth(boss);
+                }
+            } else {
+                document.getElementById('bossHealthContainer').style.display = 'none';
+            }
+            
+            gameState = 'playing';
+        }
+        
+        function generateDecorations(level) {
+            decorations = [];
+            const types = level.decorations || ['tree', 'bush'];
+            
+            for (let i = 0; i < 10; i++) {
+                decorations.push({
+                    type: types[Math.floor(Math.random() * types.length)],
+                    x: Math.random() * 850 + 25,
+                    y: 490,
+                    scale: 0.7 + Math.random() * 0.5
+                });
+            }
+        }
+        
+        function showLevelIndicator(level) {
+            const indicator = document.getElementById('levelIndicator');
+            document.getElementById('levelTitle').textContent = `FASE ${currentLevel + 1}: ${level.name}`;
+            document.getElementById('levelDifficulty').textContent = `Mundo: ${level.world} | Dificuldade: ${'*'.repeat(Math.min(level.difficulty, 5))}`;
+            indicator.style.display = 'block';
+            indicator.style.animation = 'none';
+            indicator.offsetHeight;
+            indicator.style.animation = 'levelPulse 0.5s ease-out';
+            
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 2500);
+        }
+        
+        function showDialog(text) {
+            gameState = 'dialog';
+            const dialog = document.getElementById('dialogBox');
+            dialog.innerHTML = text + '<br><span style="color: #ffd700; font-size: 8px;">[ENTER para continuar]</span>';
+            dialog.classList.add('show');
+        }
+        
+        function hideDialog() {
+            document.getElementById('dialogBox').classList.remove('show');
+            gameState = 'playing';
+        }
+        
+        function showChallenge() {
+            gameState = 'challenge';
+            stopMusic();
+            
+            const challenge = levels[currentLevel].challenge;
+            document.getElementById('challengeText').textContent = challenge.question;
+            document.getElementById('challengeCode').textContent = challenge.code;
+            document.getElementById('codeAnswer').value = '';
+            document.getElementById('challengeHint').textContent = '';
+            document.getElementById('codeChallenge').classList.add('show');
+            
+            setTimeout(() => document.getElementById('codeAnswer').focus(), 100);
+        }
+        
+        function checkAnswer() {
+            const answer = document.getElementById('codeAnswer').value.trim().toLowerCase();
+            const correct = levels[currentLevel].challenge.answer.toLowerCase();
+            
+            if (answer === correct) {
+                document.getElementById('codeChallenge').classList.remove('show');
+                playSFX('levelUp');
+                
+                const bonusScore = 500 * levels[currentLevel].difficulty;
+                score += bonusScore;
+                gold += 50 * levels[currentLevel].difficulty;
+                addXP(100 * levels[currentLevel].difficulty);
+                
+                // Check achievements
+                const levelTime = (Date.now() - levelStartTime) / 1000;
+                if (levelTime < 30) unlockAchievement('speedrunner');
+                if (!tookDamageThisLevel) unlockAchievement('noHit');
+                
+                document.getElementById('score').textContent = score;
+                updateUI();
+                
+                if (currentLevel < levels.length - 1) {
+                    currentLevel++;
+                    loadLevel(currentLevel);
+                    setTimeout(() => showDialog(levels[currentLevel].dialog), 2500);
+                } else {
+                    showVictory();
+                }
+            } else {
+                document.getElementById('challengeHint').textContent = 'Incorreto! Dica: ' + levels[currentLevel].challenge.hint;
+                playNote(150, 0.3, 'sawtooth', 0.15);
+            }
+        }
+        
+        document.getElementById('codeAnswer').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        
+        function showVictory() {
+            gameState = 'victory';
+            stopMusic();
+            document.getElementById('victoryScore').textContent = score;
+            document.getElementById('victoryLevel').textContent = playerLevel;
+            document.getElementById('victoryGold').textContent = gold;
+            document.getElementById('victoryScreen').style.display = 'flex';
+            
+            [523, 659, 784, 880, 1047].forEach((note, i) => {
+                setTimeout(() => playNote(note, 0.4, 'square', 0.1), i * 200);
+            });
+        }
+        
+        function showGameOver() {
+            gameState = 'gameover';
+            stopMusic();
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalLevel').textContent = currentLevel + 1;
+            document.getElementById('finalGold').textContent = gold;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            
+            playNote(200, 0.3, 'sawtooth', 0.15);
+            setTimeout(() => playNote(150, 0.4, 'sawtooth', 0.15), 300);
+        }
+        
+        function updateUI() {
+            const healthPercent = (player.health / player.maxHealth) * 100;
+            document.getElementById('healthFill').style.width = healthPercent + '%';
+            
+            const manaPercent = (player.mana / player.maxMana) * 100;
+            document.getElementById('manaFill').style.width = manaPercent + '%';
+            
+            const xpPercent = (playerXP / xpToNextLevel) * 100;
+            document.getElementById('xpFill').style.width = xpPercent + '%';
+            
+            document.getElementById('playerLevel').textContent = playerLevel;
+            document.getElementById('playerXP').textContent = playerXP;
+            document.getElementById('gold').textContent = gold;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('combo').textContent = 'x' + combo;
+            
+            // Power-up UI
+            let powerupText = '';
+            if (activePowerups.shield) powerupText += 'SHIELD ';
+            if (activePowerups.speed) powerupText += 'SPEED ';
+            if (activePowerups.invulnerable) powerupText += 'INVULN ';
+            if (activePowerups.doubleJump) powerupText += 'DJUMP ';
+            document.getElementById('powerupUI').textContent = powerupText;
+            
+            updateSkillUI();
+        }
+        
+        function updateBossHealth(boss) {
+            if (!boss) return;
+            const percent = (boss.health / boss.maxHealth) * 100;
+            document.getElementById('bossHealthFill').style.width = percent + '%';
+        }
+        
+        function addXP(amount) {
+            playerXP += amount;
+            playSFX('xp');
+            
+            while (playerXP >= xpToNextLevel) {
+                playerXP -= xpToNextLevel;
+                playerLevel++;
+                xpToNextLevel = Math.floor(xpToNextLevel * 1.5);
+                
+                // Level up bonuses
+                player.maxHealth += 5;
+                player.health = player.maxHealth;
+                player.maxMana += 5;
+                player.mana = player.maxMana;
+                player.attackDamage += 2;
+                
+                playSFX('levelUp');
+                showDamageNumber(player.x + player.width/2, player.y - 30, 'LEVEL UP!', 'levelup');
+                
+                // Unlock skills at certain levels
+                if (playerLevel === 5) {
+                    player.skills.lightning.unlocked = true;
+                    showAchievement('Skill Desbloqueada: Raio!');
+                }
+                if (playerLevel === 10) {
+                    player.skills.ultimate.unlocked = true;
+                    showAchievement('Skill Desbloqueada: Ultimate!');
+                }
+                if (playerLevel === 20) {
+                    unlockAchievement('maxLevel');
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function showDamageNumber(x, y, text, type = 'damage') {
+            const div = document.createElement('div');
+            div.className = 'damage-number' + (type === 'crit' ? ' crit' : '') + (type === 'heal' ? ' heal' : '');
+            div.textContent = text;
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+            document.getElementById('gameContainer').appendChild(div);
+            
+            setTimeout(() => div.remove(), 1000);
+        }
+        
+        function showAchievement(text) {
+            const popup = document.getElementById('achievementPopup');
+            document.getElementById('achievementText').textContent = text;
+            popup.style.display = 'block';
+            playSFX('achievement');
+            
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 3000);
+        }
+        
+        function unlockAchievement(id) {
+            if (achievements[id] && !achievements[id].unlocked) {
+                achievements[id].unlocked = true;
+                showAchievement(achievements[id].name + ': ' + achievements[id].desc);
+            }
+        }
+        
+        function createParticle(x, y, color, type = 'normal') {
+            const speed = type === 'dash' ? 8 : (type === 'fire' ? 6 : (type === 'heal' ? 4 : 5));
+            particles.push({
+                x, y,
+                velocityX: (Math.random() - 0.5) * speed,
+                velocityY: (Math.random() - 0.5) * speed - (type === 'heal' ? 3 : 1),
+                life: type === 'fire' ? 20 : 35,
+                maxLife: type === 'fire' ? 20 : 35,
+                color,
+                size: type === 'fire' ? 6 : (type === 'coin' ? 5 : 4),
+                type
+            });
+        }
+        
+        function damageEnemy(enemy, damage, isCrit = false) {
+            if (!enemy.alive) return;
+            
+            const actualDamage = isCrit ? damage * 1.5 : damage;
+            enemy.health -= actualDamage;
+            
+            showDamageNumber(
+                enemy.x + enemy.width/2 + (Math.random() - 0.5) * 20,
+                enemy.y + (Math.random() - 0.5) * 20,
+                Math.floor(actualDamage),
+                isCrit ? 'crit' : 'damage'
+            );
+            
+            if (enemy.health <= 0) {
+                enemy.alive = false;
+                const isBoss = enemy.type && enemy.type.startsWith('boss_');
+                
+                const scoreGain = isBoss ? 1000 : (100 * (1 + combo * 0.2));
+                const goldGain = isBoss ? 200 : (20 + levels[currentLevel].difficulty * 5);
+                const xpGain = isBoss ? 500 : (50 * levels[currentLevel].difficulty);
+                
+                score += Math.floor(scoreGain);
+                gold += goldGain;
+                addXP(xpGain);
+                
+                combo++;
+                comboTimer = 90;
+                if (combo > maxCombo) maxCombo = combo;
+                
+                if (combo >= 10) unlockAchievement('combo10');
+                if (isBoss) unlockAchievement('bossSlayer');
+                if (!achievements.firstKill.unlocked) unlockAchievement('firstKill');
+                
+                document.getElementById('score').textContent = score;
+                updateUI();
+                
+                if (isBoss) {
+                    playSFX('bossHit');
+                    screenShake = 30;
+                    screenShakeIntensity = 10;
+                    for (let i = 0; i < 50; i++) {
+                        createParticle(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.color, 'fire');
+                    }
+                } else {
+                    playSFX('enemy');
+                    for (let i = 0; i < 12; i++) {
+                        createParticle(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.color);
+                    }
+                }
+            } else {
+                if (enemy.type && enemy.type.startsWith('boss_')) {
+                    playSFX('bossHit');
+                    updateBossHealth(enemy);
+                }
+            }
+        }
+        
+        // ==================== LOJA ====================
+        function openShop() {
+            document.getElementById('shopScreen').classList.add('show');
+            document.getElementById('shopGold').textContent = gold;
+            renderShopItems();
+        }
+        
+        function closeShop() {
+            document.getElementById('shopScreen').classList.remove('show');
+        }
+        
+        function renderShopItems() {
+            const container = document.getElementById('shopItems');
+            container.innerHTML = '';
+            
+            shopItems.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'shop-item' + (item.owned ? ' owned' : '');
+                div.innerHTML = `
+                    <div class="shop-item-icon">${item.icon}</div>
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-desc">${item.desc}</div>
+                    <div class="shop-item-price">${item.owned ? 'COMPRADO' : item.price + ' Gold'}</div>
+                `;
+                
+                if (!item.owned) {
+                    div.onclick = () => buyItem(index);
+                }
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function buyItem(index) {
+            const item = shopItems[index];
+            if (item.owned || gold < item.price) return;
+            
+            gold -= item.price;
+            item.owned = true;
+            item.effect();
+            
+            playSFX('coin');
+            document.getElementById('shopGold').textContent = gold;
+            renderShopItems();
+            updateUI();
+        }
+        
+        // ==================== ATUALIZACAO DO JOGO ====================
+        function update() {
+            if (gameState !== 'playing') return;
+            
+            gameTime++;
+            
+            // Player controls
+            const moveSpeed = player.baseSpeed * (activePowerups.speed ? 1.6 : 1);
+            
+            if (!player.isDashing) {
+                if (keys['ArrowLeft'] || keys['KeyA']) {
+                    player.velocityX = -moveSpeed;
+                    player.facing = -1;
+                } else if (keys['ArrowRight'] || keys['KeyD']) {
+                    player.velocityX = moveSpeed;
+                    player.facing = 1;
+                } else {
+                    player.velocityX *= 0.85;
+                }
+            }
+            
+            // Jump
+            if ((keys['Space'] || keys['KeyW'] || keys['ArrowUp']) && player.grounded) {
+                player.velocityY = player.jumpForce;
+                player.grounded = false;
+                player.hasDoubleJumped = false;
+                playSFX('jump');
+            }
+            
+            // Dash timer
+            if (player.isDashing) {
+                player.dashTimer--;
+                if (player.dashTimer <= 0) {
+                    player.isDashing = false;
+                }
+            }
+            if (player.dashCooldown > 0) player.dashCooldown--;
+            
+            // Gravity
+            if (!player.isDashing) {
+                player.velocityY += player.gravity;
+            }
+            
+            // Movement
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            
+            // Screen bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+            
+            // Ground collision
+            const level = levels[currentLevel];
+            const groundY = level.hasLava ? level.lavaLevel - player.height : (level.hasWater ? level.waterLevel - player.height : 460);
+            
+            if (player.y > groundY) {
+                if (level.hasLava && !activePowerups.invulnerable && !player.invincible) {
+                    takeDamage(50);
+                    player.velocityY = -15;
+                } else if (level.hasWater) {
+                    player.velocityY *= 0.7;
+                    player.y = Math.min(player.y, groundY + 20);
+                    player.grounded = true;
+                } else {
+                    player.y = groundY;
+                    player.velocityY = 0;
+                    player.grounded = true;
+                    player.hasDoubleJumped = false;
+                }
+            }
+            
+            // Platform collision
+            player.grounded = player.y >= groundY;
+            
+            platforms.forEach(platform => {
+                // Moving platforms
+                if (platform.moving) {
+                    platform.moveOffset += 0.02 * platform.moveDir;
+                    if (Math.abs(platform.moveOffset) > 1) platform.moveDir *= -1;
+                    platform.x = platform.originalX + Math.sin(platform.moveOffset * Math.PI) * (platform.range || 50);
+                }
+                
+                if (player.velocityY > 0 &&
+                    player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.w &&
+                    player.y + player.height > platform.y &&
+                    player.y + player.height < platform.y + platform.h + 15) {
+                    player.y = platform.y - player.height;
+                    player.velocityY = 0;
+                    player.grounded = true;
+                    player.hasDoubleJumped = false;
+                }
+            });
+            
+            // Attack
+            if (player.attacking) {
+                player.attackTimer--;
+                if (player.attackTimer <= 0) {
+                    player.attacking = false;
+                }
+            }
+            
+            // Invincibility
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) {
+                    player.invincible = false;
+                }
+            }
+            
+            // Mana regen
+            player.mana = Math.min(player.maxMana, player.mana + player.manaRegen);
+            
+            // Skills cooldown
+            Object.keys(player.skills).forEach(skill => {
+                if (player.skills[skill].cooldown > 0) {
+                    player.skills[skill].cooldown--;
+                }
+            });
+            
+            // Animation
+            player.animTimer++;
+            if (player.animTimer > 6) {
+                player.animTimer = 0;
+                player.animFrame = (player.animFrame + 1) % 4;
+            }
+            
+            // Update enemies
+            updateEnemies();
+            
+            // Update projectiles
+            updateProjectiles();
+            
+            // Collect coins
+            collectCoins();
+            
+            // Collect powerups
+            collectPowerups();
+            
+            // Update powerup timers
+            updatePowerupTimers();
+            
+            // Update combo
+            if (comboTimer > 0) {
+                comboTimer--;
+                document.getElementById('comboDisplay').style.display = 'block';
+                document.getElementById('comboCount').textContent = combo;
+            } else if (combo > 0) {
+                combo = 0;
+                document.getElementById('comboDisplay').style.display = 'none';
+                updateUI();
+            }
+            
+            // Check level end
+            if (player.x > canvas.width - 60) {
+                // Check if all enemies defeated (required for boss levels)
+                const level = levels[currentLevel];
+                if (level.isBoss) {
+                    const bossAlive = enemies.some(e => e.alive && e.type && e.type.startsWith('boss_'));
+                    if (!bossAlive) {
+                        showChallenge();
+                    }
+                } else {
+                    showChallenge();
+                }
+            }
+            
+            // Update particles
+            particles = particles.filter(p => {
+                p.x += p.velocityX;
+                p.y += p.velocityY;
+                if (p.type !== 'heal') p.velocityY += 0.15;
+                p.life--;
+                return p.life > 0;
+            });
+            
+            // Screen shake
+            if (screenShake > 0) {
+                screenShake--;
+            }
+            
+            updateUI();
+        }
+        
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                if (!enemy.alive) return;
+                
+                const level = levels[currentLevel];
+                const isBoss = enemy.type && enemy.type.startsWith('boss_');
+                
+                // Enemy AI
+                if (isBoss) {
+                    updateBossAI(enemy);
+                } else {
+                    updateNormalEnemyAI(enemy);
+                }
+                
+                enemy.animFrame = (enemy.animFrame + 0.1) % 2;
+                
+                // Collision with player
+                if (player.x + player.width > enemy.x + 5 &&
+                    player.x < enemy.x + enemy.width - 5 &&
+                    player.y + player.height > enemy.y + 5 &&
+                    player.y < enemy.y + enemy.height - 5) {
+                    
+                    // Jump on enemy
+                    if (player.velocityY > 0 && player.y + player.height < enemy.y + enemy.height / 2 + 10) {
+                        damageEnemy(enemy, player.attackDamage + 10);
+                        player.velocityY = -12;
+                    }
+                    // Attack enemy
+                    else if (player.attacking) {
+                        const attackRange = player.facing === 1 ? 
+                            (player.x + player.width < enemy.x + enemy.width + 30 && player.x + player.width > enemy.x - 10) :
+                            (player.x > enemy.x - 30 && player.x < enemy.x + enemy.width + 10);
+                        if (attackRange) {
+                            damageEnemy(enemy, player.attackDamage, Math.random() < 0.15);
+                        }
+                    }
+                    // Take damage
+                    else if (!player.invincible && !activePowerups.invulnerable && !player.isDashing) {
+                        takeDamage(isBoss ? 30 : 15);
+                    }
+                }
+            });
+        }
+        
+        function updateNormalEnemyAI(enemy) {
+            const speed = enemy.velocityX || 2;
+            
+            switch(enemy.type) {
+                case 'slime':
+                case 'fireslime':
+                case 'mushroom':
+                case 'golem':
+                case 'lavaGolem':
+                case 'firewall':
+                case 'crab':
+                    enemy.x += speed * enemy.direction;
+                    if (enemy.x < enemy.startX - 100 || enemy.x > enemy.startX + 100) {
+                        enemy.direction *= -1;
+                    }
+                    break;
+                    
+                case 'bird':
+                case 'bat':
+                case 'eagle':
+                case 'dragon':
+                case 'angel':
+                case 'virus':
+                    enemy.x += speed * enemy.direction;
+                    enemy.floatOffset += 0.08;
+                    enemy.y = enemy.startY + Math.sin(enemy.floatOffset) * 35;
+                    if (enemy.x < 50 || enemy.x > canvas.width - 80) {
+                        enemy.direction *= -1;
+                    }
+                    break;
+                    
+                case 'fish':
+                case 'jellyfish':
+                case 'glitch':
+                case 'cloudMonster':
+                case 'wizard':
+                    enemy.floatOffset += 0.06;
+                    enemy.y = enemy.startY + Math.sin(enemy.floatOffset) * 45;
+                    enemy.x += Math.cos(enemy.floatOffset * 0.5) * 1.5;
+                    if (enemy.x < 50) enemy.x = 50;
+                    if (enemy.x > canvas.width - 80) enemy.x = canvas.width - 80;
+                    break;
+                    
+                case 'spinner':
+                    enemy.floatOffset += 0.1;
+                    enemy.x = enemy.startX + Math.cos(enemy.floatOffset) * 60;
+                    enemy.y = enemy.startY + Math.sin(enemy.floatOffset) * 60;
+                    break;
+            }
+        }
+        
+        function updateBossAI(boss) {
+            boss.attackTimer++;
+            
+            // Change phase based on health
+            if (boss.health < boss.maxHealth * 0.3) {
+                boss.phase = 3;
+            } else if (boss.health < boss.maxHealth * 0.6) {
+                boss.phase = 2;
+            }
+            
+            // Boss movement
+            boss.floatOffset += 0.03 * boss.phase;
+            boss.y = boss.startY + Math.sin(boss.floatOffset) * 30;
+            
+            // Move towards player slowly
+            const dx = player.x - boss.x;
+            boss.x += Math.sign(dx) * (0.5 * boss.phase);
+            boss.x = Math.max(300, Math.min(canvas.width - 150, boss.x));
+            
+            // Attack patterns
+            const attackInterval = 120 / boss.phase;
+            if (boss.attackTimer >= attackInterval) {
+                boss.attackTimer = 0;
+                boss.attackPattern = (boss.attackPattern + 1) % 3;
+                
+                // Create projectile attack
+                const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                
+                if (boss.attackPattern === 0) {
+                    // Single shot
+                    projectiles.push({
+                        x: boss.x + boss.width/2,
+                        y: boss.y + boss.height/2,
+                        velocityX: Math.cos(angle) * 6,
+                        velocityY: Math.sin(angle) * 6,
+                        damage: 20,
+                        type: 'enemy_projectile',
+                        life: 120,
+                        size: 12,
+                        color: boss.color
+                    });
+                } else if (boss.attackPattern === 1 && boss.phase >= 2) {
+                    // Spread shot
+                    for (let i = -1; i <= 1; i++) {
+                        const spreadAngle = angle + i * 0.3;
+                        projectiles.push({
+                            x: boss.x + boss.width/2,
+                            y: boss.y + boss.height/2,
+                            velocityX: Math.cos(spreadAngle) * 5,
+                            velocityY: Math.sin(spreadAngle) * 5,
+                            damage: 15,
+                            type: 'enemy_projectile',
+                            life: 100,
+                            size: 10,
+                            color: boss.color
+                        });
+                    }
+                } else if (boss.attackPattern === 2 && boss.phase >= 3) {
+                    // Ring of projectiles
+                    for (let i = 0; i < 8; i++) {
+                        const ringAngle = (i / 8) * Math.PI * 2;
+                        projectiles.push({
+                            x: boss.x + boss.width/2,
+                            y: boss.y + boss.height/2,
+                            velocityX: Math.cos(ringAngle) * 4,
+                            velocityY: Math.sin(ringAngle) * 4,
+                            damage: 10,
+                            type: 'enemy_projectile',
+                            life: 90,
+                            size: 8,
+                            color: boss.color
+                        });
+                    }
+                }
+            }
+        }
+        
+        function updateProjectiles() {
+            projectiles = projectiles.filter(proj => {
+                proj.x += proj.velocityX;
+                proj.y += proj.velocityY;
+                proj.life--;
+                
+                // Player projectile hitting enemies
+                if (proj.type === 'fireball') {
+                    enemies.forEach(enemy => {
+                        if (enemy.alive &&
+                            proj.x + proj.size > enemy.x &&
+                            proj.x < enemy.x + enemy.width &&
+                            proj.y + proj.size > enemy.y &&
+                            proj.y < enemy.y + enemy.height) {
+                            damageEnemy(enemy, proj.damage, Math.random() < 0.2);
+                            proj.life = 0;
+                            for (let i = 0; i < 8; i++) {
+                                createParticle(proj.x, proj.y, '#FF4500', 'fire');
+                            }
+                        }
+                    });
+                }
+                
+                // Enemy projectile hitting player
+                if (proj.type === 'enemy_projectile') {
+                    if (player.x + player.width > proj.x &&
+                        player.x < proj.x + proj.size &&
+                        player.y + player.height > proj.y &&
+                        player.y < proj.y + proj.size) {
+                        if (!player.invincible && !activePowerups.invulnerable && !player.isDashing) {
+                            takeDamage(proj.damage);
+                            proj.life = 0;
+                        }
+                    }
+                }
+                
+                return proj.life > 0 && proj.x > -50 && proj.x < canvas.width + 50 && proj.y > -50 && proj.y < canvas.height + 50;
+            });
+        }
+        
+        function takeDamage(amount) {
+            if (activePowerups.shield) {
+                activePowerups.shield = false;
+                activePowerups.shieldCounter = 0;
+                playSFX('hit');
+                for (let i = 0; i < 15; i++) {
+                    createParticle(player.x + player.width/2, player.y + player.height/2, '#00FFFF');
+                }
+                return;
+            }
+            
+            player.health -= amount;
+            player.invincible = true;
+            player.invincibleTimer = 60;
+            tookDamageThisLevel = true;
+            playSFX('hit');
+            
+            screenShake = 10;
+            screenShakeIntensity = 5;
+            
+            showDamageNumber(player.x + player.width/2, player.y, '-' + amount, 'damage');
+            
+            // Knockback
+            player.velocityX = player.facing * -8;
+            player.velocityY = -5;
+            
+            if (player.health <= 0) {
+                lives--;
+                if (lives > 0) {
+                    player.health = player.maxHealth;
+                    player.mana = player.maxMana;
+                    player.x = levels[currentLevel].checkpoint ? levels[currentLevel].checkpoint.x : 50;
+                    player.y = levels[currentLevel].checkpoint ? levels[currentLevel].checkpoint.y : 300;
+                    player.velocityX = 0;
+                    player.velocityY = 0;
+                } else {
+                    showGameOver();
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function collectCoins() {
+            coins.forEach(coin => {
+                if (coin.collected) return;
+                
+                coin.animY = Math.sin(gameTime / 15 + coin.x) * 4;
+                
+                if (player.x + player.width > coin.x &&
+                    player.x < coin.x + 22 &&
+                    player.y + player.height > coin.y + coin.animY &&
+                    player.y < coin.y + coin.animY + 22) {
+                    coin.collected = true;
+                    
+                    const coinValue = 10 + levels[currentLevel].difficulty * 5;
+                    const scoreValue = 50 * (1 + combo * 0.1);
+                    
+                    gold += coinValue;
+                    score += Math.floor(scoreValue);
+                    addXP(10);
+                    combo++;
+                    comboTimer = 90;
+                    totalCoinsCollected++;
+                    
+                    if (totalCoinsCollected >= 100) unlockAchievement('collector');
+                    
+                    document.getElementById('score').textContent = score;
+                    updateUI();
+                    playSFX('coin');
+                    
+                    for (let i = 0; i < 8; i++) {
+                        createParticle(coin.x + 11, coin.y + 11, '#FFD700', 'coin');
+                    }
+                }
+            });
+        }
+        
+        function collectPowerups() {
+            powerups.forEach(powerup => {
+                if (powerup.collected) return;
+                
+                if (player.x + player.width > powerup.x &&
+                    player.x < powerup.x + 28 &&
+                    player.y + player.height > powerup.y &&
+                    player.y < powerup.y + 28) {
+                    powerup.collected = true;
+                    
+                    const effect = powerupEffects[powerup.type];
+                    
+                    if (effect.instant) {
+                        if (powerup.type === 'health') {
+                            player.health = Math.min(player.maxHealth, player.health + 40);
+                            showDamageNumber(player.x + player.width/2, player.y, '+40', 'heal');
+                        } else if (powerup.type === 'mana') {
+                            player.mana = Math.min(player.maxMana, player.mana + 50);
+                        }
+                    } else {
+                        activePowerups[powerup.type] = true;
+                        activePowerups[powerup.type + 'Counter'] = effect.duration;
+                    }
+                    
+                    score += 200;
+                    addXP(30);
+                    document.getElementById('score').textContent = score;
+                    playSFX('levelUp');
+                    
+                    for (let i = 0; i < 15; i++) {
+                        createParticle(powerup.x + 14, powerup.y + 14, effect.color);
+                    }
+                    
+                    updateUI();
+                }
+            });
+        }
+        
+        function updatePowerupTimers() {
+            ['shield', 'speed', 'invulnerable', 'doubleJump'].forEach(type => {
+                if (activePowerups[type]) {
+                    activePowerups[type + 'Counter']--;
+                    if (activePowerups[type + 'Counter'] <= 0) {
+                        activePowerups[type] = false;
+                    }
+                }
+            });
+        }
+        
+        // ==================== RENDERIZACAO ====================
+        function draw() {
+            const level = levels[currentLevel];
+            
+            ctx.save();
+            
+            // Screen shake
+            if (screenShake > 0) {
+                const shakeX = (Math.random() - 0.5) * screenShakeIntensity;
+                const shakeY = (Math.random() - 0.5) * screenShakeIntensity;
+                ctx.translate(shakeX, shakeY);
+            }
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, level.background[0]);
+            gradient.addColorStop(1, level.background[1]);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Background effects
+            drawBackgroundEffects(level);
+            
+            // Decorations
+            decorations.forEach(dec => drawDecoration(dec, level));
+            
+            // Ground
+            ctx.fillStyle = level.groundColor;
+            if (level.hasLava) {
+                // Lava
+                const lavaGradient = ctx.createLinearGradient(0, level.lavaLevel, 0, canvas.height);
+                lavaGradient.addColorStop(0, '#FF4500');
+                lavaGradient.addColorStop(0.5, '#FF0000');
+                lavaGradient.addColorStop(1, '#8B0000');
+                ctx.fillStyle = lavaGradient;
+                ctx.fillRect(0, level.lavaLevel, canvas.width, canvas.height - level.lavaLevel);
+                
+                // Lava bubbles
+                for (let i = 0; i < 5; i++) {
+                    const bubbleX = (gameTime * 2 + i * 180) % canvas.width;
+                    const bubbleY = level.lavaLevel + Math.sin(gameTime / 20 + i) * 5;
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.beginPath();
+                    ctx.arc(bubbleX, bubbleY, 3 + Math.sin(gameTime / 10 + i) * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (level.hasWater) {
+                // Water
+                const waterGradient = ctx.createLinearGradient(0, level.waterLevel, 0, canvas.height);
+                waterGradient.addColorStop(0, 'rgba(0, 100, 200, 0.6)');
+                waterGradient.addColorStop(1, 'rgba(0, 50, 150, 0.8)');
+                ctx.fillStyle = waterGradient;
+                ctx.fillRect(0, level.waterLevel, canvas.width, canvas.height - level.waterLevel);
+            } else {
+                ctx.fillRect(0, 500, canvas.width, 50);
+            }
+            
+            // Ground details
+            ctx.fillStyle = shadeColor(level.groundColor, -15);
+            for (let i = 0; i < canvas.width; i += 45) {
+                ctx.fillRect(i, 500, 22, 4);
+            }
+            
+            // Platforms
+            platforms.forEach(platform => drawPlatform(platform, level));
+            
+            // Coins
+            coins.forEach((coin, index) => {
+                if (coin.collected) return;
+                drawCoin(coin, index);
+            });
+            
+            // Powerups
+            powerups.forEach((powerup, index) => {
+                if (powerup.collected) return;
+                drawPowerup(powerup, index);
+            });
+            
+            // Enemies
+            enemies.forEach(enemy => {
+                if (!enemy.alive) return;
+                drawEnemy(enemy);
+            });
+            
+            // Player
+            drawPlayer();
+            
+            // Projectiles
+            projectiles.forEach(proj => drawProjectile(proj));
+            
+            // Particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / p.maxLife;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            
+            // Portal
+            drawPortal();
+            
+            ctx.restore();
+        }
+        
+        function drawBackgroundEffects(level) {
+            const name = level.name;
+            
+            // Digital world effects
+            if (level.world === 'Fortaleza Digital') {
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.03)';
+                for (let i = 0; i < 20; i++) {
+                    const x = (i * 45 + gameTime * 0.5) % canvas.width;
+                    ctx.fillRect(x, 0, 2, canvas.height);
+                }
+                
+                // Matrix rain
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
+                ctx.font = '10px monospace';
+                for (let i = 0; i < 15; i++) {
+                    const x = (i * 60) % canvas.width;
+                    const y = (gameTime * 2 + i * 50) % canvas.height;
+                    ctx.fillText(String.fromCharCode(33 + Math.floor(Math.random() * 94)), x, y);
+                }
+            }
+            
+            // Sky world clouds
+            if (level.world === 'Reino dos Ceus') {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                for (let i = 0; i < 5; i++) {
+                    const x = (i * 200 + gameTime * 0.3) % (canvas.width + 100) - 50;
+                    drawCloud(x, 60 + i * 50, 0.5 + i * 0.1);
+                }
+            }
+            
+            // Cave crystals
+            if (level.world === 'Cavernas Cristalinas') {
+                for (let i = 0; i < 6; i++) {
+                    const x = i * 150 + 50;
+                    const glow = Math.sin(gameTime / 30 + i) * 0.3 + 0.5;
+                    ctx.fillStyle = `rgba(138, 43, 226, ${glow})`;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 60);
+                    ctx.lineTo(x - 10, 100);
+                    ctx.lineTo(x + 10, 100);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            
+            // Forest fireflies
+            if (level.world === 'Floresta Mistica') {
+                for (let i = 0; i < 8; i++) {
+                    const x = (Math.sin(gameTime / 50 + i * 2) * 100 + i * 100) % canvas.width;
+                    const y = (Math.cos(gameTime / 40 + i) * 50 + 150);
+                    const alpha = Math.sin(gameTime / 20 + i) * 0.3 + 0.5;
+                    ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        function drawCloud(x, y, scale) {
+            ctx.beginPath();
+            ctx.arc(x, y, 25 * scale, 0, Math.PI * 2);
+            ctx.arc(x + 30 * scale, y, 30 * scale, 0, Math.PI * 2);
+            ctx.arc(x + 60 * scale, y, 25 * scale, 0, Math.PI * 2);
+            ctx.arc(x + 20 * scale, y - 20 * scale, 22 * scale, 0, Math.PI * 2);
+            ctx.arc(x + 40 * scale, y - 20 * scale, 22 * scale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawPlatform(platform, level) {
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(platform.x + 4, platform.y + 4, platform.w, platform.h);
+            
+            // Platform body
+            if (platform.digital) {
+                const pulse = Math.sin(gameTime / 15 + platform.x / 50) * 0.3 + 0.7;
+                ctx.fillStyle = `rgba(0, 255, 136, ${pulse})`;
+                ctx.strokeStyle = '#00ff88';
+                ctx.lineWidth = 2;
+                ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
+                ctx.strokeRect(platform.x, platform.y, platform.w, platform.h);
+            } else if (platform.rainbow) {
+                const hue = (gameTime * 2 + platform.x) % 360;
+                ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+                ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
+            } else {
+                ctx.fillStyle = level.platformColor;
+                ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
+                
+                // Highlight
+                ctx.fillStyle = shadeColor(level.platformColor, 25);
+                ctx.fillRect(platform.x, platform.y, platform.w, 4);
+                
+                // Shadow
+                ctx.fillStyle = shadeColor(level.platformColor, -25);
+                ctx.fillRect(platform.x, platform.y + platform.h - 4, platform.w, 4);
+            }
+        }
+        
+        function drawCoin(coin, index) {
+            const y = coin.y + coin.animY;
+            
+            // Glow
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(coin.x + 11, y + 11, 18, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Coin body
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(coin.x + 11, y + 11, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Shine
+            ctx.fillStyle = '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(coin.x + 8, y + 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Dollar sign
+            ctx.fillStyle = '#B8860B';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('$', coin.x + 11, y + 15);
+        }
+        
+        function drawPowerup(powerup, index) {
+            const pulse = Math.sin(gameTime / 15 + index) * 4;
+            const effect = powerupEffects[powerup.type];
+            
+            // Glow
+            ctx.fillStyle = effect.color.replace(')', ', 0.3)').replace('rgb', 'rgba');
+            if (effect.color.startsWith('#')) {
+                ctx.fillStyle = `rgba(${parseInt(effect.color.slice(1,3), 16)}, ${parseInt(effect.color.slice(3,5), 16)}, ${parseInt(effect.color.slice(5,7), 16)}, 0.3)`;
+            }
+            ctx.beginPath();
+            ctx.arc(powerup.x + 14, powerup.y + 14, 22 + pulse, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Box
+            ctx.fillStyle = effect.color;
+            ctx.fillRect(powerup.x, powerup.y, 28, 28);
+            
+            // Border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(powerup.x, powerup.y, 28, 28);
+            
+            // Icon
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(effect.icon, powerup.x + 14, powerup.y + 20);
+        }
+        
+        function drawEnemy(enemy) {
+            const isBoss = enemy.type && enemy.type.startsWith('boss_');
+            
+            ctx.save();
+            ctx.translate(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
+            
+            // Boss glow
+            if (isBoss) {
+                ctx.shadowColor = enemy.color;
+                ctx.shadowBlur = 20 + Math.sin(gameTime / 10) * 10;
+            }
+            
+            ctx.translate(-enemy.width/2, -enemy.height/2);
+            
+            // Body
+            ctx.fillStyle = enemy.color;
+            
+            if (isBoss) {
+                // Boss drawing
+                ctx.fillRect(0, 0, enemy.width, enemy.height);
+                
+                // Boss crown/horns
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.moveTo(enemy.width * 0.2, 0);
+                ctx.lineTo(enemy.width * 0.3, -15);
+                ctx.lineTo(enemy.width * 0.4, 0);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(enemy.width * 0.6, 0);
+                ctx.lineTo(enemy.width * 0.7, -15);
+                ctx.lineTo(enemy.width * 0.8, 0);
+                ctx.fill();
+                
+                // Boss eyes
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(enemy.width * 0.3, enemy.height * 0.3, 8, 0, Math.PI * 2);
+                ctx.arc(enemy.width * 0.7, enemy.height * 0.3, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Boss phase indicator
+                if (enemy.phase >= 2) {
+                    ctx.strokeStyle = enemy.phase === 3 ? '#FF0000' : '#FF8800';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(-5, -5, enemy.width + 10, enemy.height + 10);
+                }
+            } else {
+                // Normal enemy drawing based on type
+                switch(enemy.type) {
+                    case 'slime':
+                    case 'fireslime':
+                        const squish = Math.sin(gameTime / 10 + enemy.x) * 3;
+                        ctx.beginPath();
+                        ctx.ellipse(enemy.width/2, enemy.height - squish/2, enemy.width/2, enemy.height/2 + squish, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Eyes
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(enemy.width * 0.35, enemy.height * 0.4, 5, 0, Math.PI * 2);
+                        ctx.arc(enemy.width * 0.65, enemy.height * 0.4, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(enemy.width * 0.35, enemy.height * 0.4, 2, 0, Math.PI * 2);
+                        ctx.arc(enemy.width * 0.65, enemy.height * 0.4, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                        
+                    case 'bat':
+                    case 'bird':
+                    case 'eagle':
+                        const wingFlap = Math.sin(gameTime / 5) * 10;
+                        ctx.fillRect(enemy.width * 0.3, enemy.height * 0.3, enemy.width * 0.4, enemy.height * 0.4);
+                        // Wings
+                        ctx.beginPath();
+                        ctx.moveTo(0, enemy.height/2);
+                        ctx.lineTo(enemy.width * 0.3, enemy.height/2 + wingFlap);
+                        ctx.lineTo(enemy.width * 0.3, enemy.height/2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(enemy.width, enemy.height/2);
+                        ctx.lineTo(enemy.width * 0.7, enemy.height/2 - wingFlap);
+                        ctx.lineTo(enemy.width * 0.7, enemy.height/2);
+                        ctx.fill();
+                        // Eyes
+                        ctx.fillStyle = '#FF0000';
+                        ctx.beginPath();
+                        ctx.arc(enemy.width * 0.4, enemy.height * 0.4, 3, 0, Math.PI * 2);
+                        ctx.arc(enemy.width * 0.6, enemy.height * 0.4, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                        
+                    case 'golem':
+                    case 'lavaGolem':
+                    case 'firewall':
+                        ctx.fillRect(0, 0, enemy.width, enemy.height);
+                        ctx.fillStyle = shadeColor(enemy.color, 30);
+                        ctx.fillRect(enemy.width * 0.1, enemy.height * 0.1, enemy.width * 0.3, enemy.height * 0.2);
+                        ctx.fillRect(enemy.width * 0.6, enemy.height * 0.1, enemy.width * 0.3, enemy.height * 0.2);
+                        // Eyes
+                        ctx.fillStyle = '#FF0000';
+                        ctx.fillRect(enemy.width * 0.2, enemy.height * 0.3, 8, 4);
+                        ctx.fillRect(enemy.width * 0.6, enemy.height * 0.3, 8, 4);
+                        break;
+                        
+                    case 'dragon':
+                        ctx.fillRect(0, enemy.height * 0.2, enemy.width * 0.8, enemy.height * 0.6);
+                        // Head
+                        ctx.fillRect(enemy.width * 0.6, 0, enemy.width * 0.4, enemy.height * 0.5);
+                        // Wings
+                        ctx.fillStyle = shadeColor(enemy.color, -20);
+                        ctx.beginPath();
+                        ctx.moveTo(enemy.width * 0.2, enemy.height * 0.2);
+                        ctx.lineTo(0, 0);
+                        ctx.lineTo(enemy.width * 0.3, enemy.height * 0.4);
+                        ctx.fill();
+                        // Eye
+                        ctx.fillStyle = '#FFD700';
+                        ctx.beginPath();
+                        ctx.arc(enemy.width * 0.8, enemy.height * 0.2, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                        
+                    case 'virus':
+                    case 'glitch':
+                        const glitchOffset = enemy.type === 'glitch' ? Math.random() * 4 - 2 : 0;
+                        ctx.fillStyle = enemy.color;
+                        ctx.fillRect(glitchOffset, 0, enemy.width, enemy.height);
+                        // Spikes
+                        for (let i = 0; i < 8; i++) {
+                            const angle = (i / 8) * Math.PI * 2 + gameTime / 20;
+                            const spike = 10 + Math.sin(gameTime / 10 + i) * 3;
+                            ctx.beginPath();
+                            ctx.moveTo(enemy.width/2, enemy.height/2);
+                            ctx.lineTo(
+                                enemy.width/2 + Math.cos(angle) * spike,
+                                enemy.height/2 + Math.sin(angle) * spike
+                            );
+                            ctx.lineTo(
+                                enemy.width/2 + Math.cos(angle + 0.2) * (spike - 5),
+                                enemy.height/2 + Math.sin(angle + 0.2) * (spike - 5)
+                            );
+                            ctx.fill();
+                        }
+                        // Eye
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(enemy.width/2, enemy.height/2, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                        
+                    default:
+                        ctx.fillRect(0, 0, enemy.width, enemy.height);
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(enemy.width * 0.3, enemy.height * 0.3, 4, 0, Math.PI * 2);
+                        ctx.arc(enemy.width * 0.7, enemy.height * 0.3, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                }
+            }
+            
+            // Health bar for bosses
+            if (isBoss) {
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(0, -15, enemy.width, 8);
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(0, -15, enemy.width * (enemy.health / enemy.maxHealth), 8);
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x + player.width/2, player.y + player.height/2);
+            
+            // Invincibility flash
+            if (player.invincible && Math.floor(gameTime / 4) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+            
+            // Power-up effects
+            if (activePowerups.invulnerable) {
+                ctx.shadowColor = '#FFFF00';
+                ctx.shadowBlur = 20;
+            }
+            if (activePowerups.speed) {
+                ctx.shadowColor = '#FF00FF';
+                ctx.shadowBlur = 15;
+            }
+            if (activePowerups.shield) {
+                // Shield bubble
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, player.width * 0.8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Dash effect
+            if (player.isDashing) {
+                ctx.globalAlpha = 0.7;
+                ctx.shadowColor = '#00FFFF';
+                ctx.shadowBlur = 25;
+            }
+            
+            ctx.scale(player.facing, 1);
+            ctx.translate(-player.width/2, -player.height/2);
+            
+            // Body
+            ctx.fillStyle = '#4169E1';
+            ctx.fillRect(10, 18, 16, 22);
+            
+            // Head
+            ctx.fillStyle = '#FFE4C4';
+            ctx.fillRect(10, 4, 16, 16);
+            
+            // Hair
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(8, 2, 20, 6);
+            ctx.fillRect(8, 2, 5, 12);
+            
+            // Eye
+            ctx.fillStyle = '#000';
+            ctx.fillRect(20, 9, 4, 4);
+            
+            // Mouth
+            ctx.fillStyle = '#FF6B6B';
+            ctx.fillRect(19, 16, 5, 2);
+            
+            // Arms
+            ctx.fillStyle = '#FFE4C4';
+            if (player.attacking) {
+                ctx.fillRect(26, 20, 14, 5);
+                // Sword
+                ctx.fillStyle = '#C0C0C0';
+                ctx.fillRect(40, 16, 5, 14);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(36, 20, 5, 5);
+            } else {
+                const armOffset = Math.sin(player.animFrame * Math.PI / 2) * 3;
+                ctx.fillRect(26, 20 + armOffset, 7, 5);
+                ctx.fillRect(3, 20 - armOffset, 7, 5);
+            }
+            
+            // Legs
+            ctx.fillStyle = '#1E3A5F';
+            const legOffset = player.grounded ? Math.sin(player.animFrame * Math.PI / 2) * 4 : 0;
+            ctx.fillRect(10, 40, 7, 10);
+            ctx.fillRect(19 + legOffset/2, 40, 7, 10);
+            
+            // Shoes
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(9, 48, 9, 4);
+            ctx.fillRect(18 + legOffset/2, 48, 9, 4);
+            
+            ctx.restore();
+        }
+        
+        function drawProjectile(proj) {
+            ctx.save();
+            ctx.translate(proj.x, proj.y);
+            
+            if (proj.type === 'fireball') {
+                // Fire glow
+                ctx.shadowColor = '#FF4500';
+                ctx.shadowBlur = 15;
+                
+                ctx.fillStyle = '#FF4500';
+                ctx.beginPath();
+                ctx.arc(0, 0, proj.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#FFFF00';
+                ctx.beginPath();
+                ctx.arc(0, 0, proj.size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (proj.type === 'enemy_projectile') {
+                ctx.shadowColor = proj.color || '#FF0000';
+                ctx.shadowBlur = 10;
+                
+                ctx.fillStyle = proj.color || '#FF0000';
+                ctx.beginPath();
+                ctx.arc(0, 0, proj.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(0, 0, proj.size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawPortal() {
+            const x = canvas.width - 35;
+            const y = 420;
+            const pulse = Math.sin(gameTime / 15) * 5;
+            
+            // Check if portal should be active
+            const level = levels[currentLevel];
+            let portalActive = true;
+            if (level.isBoss) {
+                portalActive = !enemies.some(e => e.alive && e.type && e.type.startsWith('boss_'));
+            }
+            
+            if (!portalActive) {
+                ctx.globalAlpha = 0.3;
+            }
+            
+            // Outer glow
+            ctx.fillStyle = `rgba(0, 255, 136, ${0.2 + Math.sin(gameTime / 20) * 0.1})`;
+            ctx.beginPath();
+            ctx.ellipse(x, y, 30 + pulse, 45 + pulse, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Portal body
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, 35);
+            gradient.addColorStop(0, '#00ff88');
+            gradient.addColorStop(0.5, '#00aa55');
+            gradient.addColorStop(1, 'rgba(0, 100, 50, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.ellipse(x, y, 20 + pulse/2, 35 + pulse/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Inner swirl
+            ctx.strokeStyle = '#88ffaa';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const angle = gameTime / 30 + i * Math.PI * 2 / 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 10 + i * 5, angle, angle + Math.PI);
+                ctx.stroke();
+            }
+            
+            ctx.globalAlpha = 1;
+        }
+        
+        function drawDecoration(dec, level) {
+            ctx.save();
+            ctx.translate(dec.x, dec.y);
+            ctx.scale(dec.scale, dec.scale);
+            
+            switch(dec.type) {
+                case 'tree':
+                    ctx.fillStyle = '#654321';
+                    ctx.fillRect(-6, -50, 12, 50);
+                    ctx.fillStyle = '#228B22';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -100);
+                    ctx.lineTo(-30, -50);
+                    ctx.lineTo(30, -50);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(0, -120);
+                    ctx.lineTo(-25, -70);
+                    ctx.lineTo(25, -70);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'bush':
+                    ctx.fillStyle = '#32CD32';
+                    ctx.beginPath();
+                    ctx.arc(0, -12, 18, 0, Math.PI * 2);
+                    ctx.arc(-15, -10, 14, 0, Math.PI * 2);
+                    ctx.arc(15, -10, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'flower':
+                    ctx.fillStyle = '#228B22';
+                    ctx.fillRect(-2, -20, 4, 20);
+                    const flowerColors = ['#FF69B4', '#FFD700', '#FF6347', '#9932CC'];
+                    ctx.fillStyle = flowerColors[Math.floor(dec.x) % flowerColors.length];
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath();
+                        ctx.arc(Math.cos(i * Math.PI * 2 / 5) * 6, -20 + Math.sin(i * Math.PI * 2 / 5) * 6, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.beginPath();
+                    ctx.arc(0, -20, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'crystal':
+                    const crystalGlow = Math.sin(gameTime / 20 + dec.x / 30) * 0.3 + 0.7;
+                    ctx.fillStyle = `rgba(138, 43, 226, ${crystalGlow})`;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -40);
+                    ctx.lineTo(-12, 0);
+                    ctx.lineTo(12, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = `rgba(200, 150, 255, ${crystalGlow})`;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -40);
+                    ctx.lineTo(-4, -8);
+                    ctx.lineTo(0, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'stalactite':
+                    ctx.fillStyle = '#696969';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -80);
+                    ctx.lineTo(-10, 0);
+                    ctx.lineTo(10, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'torch':
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(-4, -35, 8, 35);
+                    const flicker = Math.sin(gameTime / 6 + dec.x) * 4;
+                    ctx.fillStyle = '#FF6600';
+                    ctx.beginPath();
+                    ctx.ellipse(0, -38, 8 + flicker/2, 14 + flicker, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.beginPath();
+                    ctx.ellipse(0, -40, 4, 7, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'skull':
+                    ctx.fillStyle = '#FFFFF0';
+                    ctx.beginPath();
+                    ctx.arc(0, -18, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(-10, -10, 20, 10);
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(-5, -20, 4, 0, Math.PI * 2);
+                    ctx.arc(5, -20, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(-5, -12, 3, 5);
+                    ctx.fillRect(2, -12, 3, 5);
+                    break;
+                    
+                case 'cloud':
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    drawCloud(0, -30, 0.6);
+                    break;
+                    
+                case 'rainbow':
+                    const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'];
+                    colors.forEach((color, i) => {
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 50 - i * 6, Math.PI, 0);
+                        ctx.stroke();
+                    });
+                    break;
+                    
+                case 'star':
+                    const starGlow = Math.sin(gameTime / 15 + dec.x / 20) * 0.3 + 0.7;
+                    ctx.fillStyle = `rgba(255, 255, 200, ${starGlow})`;
+                    drawStar(ctx, 0, -35, 5, 10, 5);
+                    break;
+                    
+                case 'pixel':
+                    ctx.fillStyle = `rgba(0, 255, 136, ${Math.random() * 0.5 + 0.3})`;
+                    ctx.fillRect(-10, -30, 8, 8);
+                    ctx.fillRect(2, -20, 8, 8);
+                    ctx.fillRect(-6, -10, 8, 8);
+                    break;
+                    
+                case 'circuit':
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-20, -40);
+                    ctx.lineTo(0, -40);
+                    ctx.lineTo(0, -20);
+                    ctx.lineTo(20, -20);
+                    ctx.stroke();
+                    ctx.fillStyle = '#00ffff';
+                    ctx.beginPath();
+                    ctx.arc(0, -40, 3, 0, Math.PI * 2);
+                    ctx.arc(0, -20, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'code':
+                    ctx.fillStyle = 'rgba(0, 255, 136, 0.4)';
+                    ctx.font = '8px monospace';
+                    ctx.fillText('01101', -15, -30);
+                    ctx.fillText('10010', -15, -20);
+                    break;
+                    
+                case 'seaweed':
+                    ctx.fillStyle = '#20B2AA';
+                    for (let i = 0; i < 3; i++) {
+                        const wave = Math.sin(gameTime / 30 + i) * 6;
+                        ctx.beginPath();
+                        ctx.moveTo(-10 + i * 10, 0);
+                        ctx.quadraticCurveTo(-10 + i * 10 + wave, -30, -10 + i * 10, -60);
+                        ctx.quadraticCurveTo(-10 + i * 10 - wave, -90, -10 + i * 10, -100);
+                        ctx.lineTo(-7 + i * 10, -100);
+                        ctx.quadraticCurveTo(-7 + i * 10 - wave, -90, -7 + i * 10, -60);
+                        ctx.quadraticCurveTo(-7 + i * 10 + wave, -30, -7 + i * 10, 0);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                case 'bubble':
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    const bubbleY = Math.sin(gameTime / 20 + dec.x / 30) * 15;
+                    ctx.beginPath();
+                    ctx.arc(0, -25 + bubbleY, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(-3, -28 + bubbleY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'mushroom':
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(-4, -15, 8, 15);
+                    ctx.fillStyle = '#FF4500';
+                    ctx.beginPath();
+                    ctx.arc(0, -17, 15, Math.PI, 0);
+                    ctx.fill();
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(-6, -20, 4, 0, Math.PI * 2);
+                    ctx.arc(6, -18, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            const step = Math.PI / spikes;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            
+            for (let i = 0; i < spikes; i++) {
+                let x = cx + Math.cos(rot) * outerRadius;
+                let y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+                
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function shadeColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + 
+                (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + 
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + 
+                (B < 255 ? B < 1 ? 0 : B : 255)
+            ).toString(16).slice(1);
+        }
+        
+        // ==================== GAME LOOP ====================
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game loop
+        gameLoop();
+    </script>
+</body>
+</html>
