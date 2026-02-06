@@ -1678,7 +1678,9 @@ class Game {
   }
 }
 // ===== INIT =====
-const game = new Game();
+var game = new Game();
+window.game = game; // Garante que o HTML consiga ver a variável
+
 </script>
 </body>
 </html>
