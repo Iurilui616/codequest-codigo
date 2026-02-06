@@ -1300,7 +1300,6 @@ class Game {
     const port = this.world.portal;
     ctx.save();
     ctx.translate(port.x, port.y);
-
     // Terminal body
     ctx.fillStyle = '#0a0a20';
     ctx.strokeStyle = '#00ffa8';
@@ -1309,7 +1308,7 @@ class Game {
     ctx.shadowColor = '#00ffa8';
     ctx.shadowBlur = 15 * glow;
     ctx.beginPath();
-    ctx.roundRect(0, 0, port.w, port.h, 6);
+    ctx.rect(0, 0, port.w, port.h); // <--- USE "rect" AO INVÉS DE "roundRect"
     ctx.fill();
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -1678,7 +1677,6 @@ class Game {
     requestAnimationFrame(t => this.loop(t));
   }
 }
-
 // ===== INIT =====
 const game = new Game();
 </script>
